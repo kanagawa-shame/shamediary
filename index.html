@@ -147,7 +147,6 @@
     </select>
 
     <div class="checks">
-      <label><input type="checkbox" id="useTitle" checked> タイトルも付ける（本文とは別にコピーできます）</label>
       <label><input type="checkbox" id="useSeason"> 季節（秋・冬）の話題を追加する</label>
       <label><input type="checkbox" id="useDaily"> 日常の小ネタを追加する</label>
     </div>
@@ -196,7 +195,6 @@
     var mood = document.getElementById("mood").value;
     var weather = document.getElementById("weather").value;
     var appeal = document.getElementById("appeal").value;
-    var useTitle = document.getElementById("useTitle").checked;
     var useSeason = document.getElementById("useSeason").checked;
     var useDaily = document.getElementById("useDaily").checked;
 
@@ -208,7 +206,7 @@
     var closingPool = isMature ? PATTERNS.mature.closings : PATTERNS.closings;
 
     var titleText = null;
-    if (useTitle && PATTERNS.titles) {
+    if (PATTERNS.titles) {
       titleText = fill(pick(PATTERNS.titles), name);
     }
 
