@@ -67,6 +67,8 @@
     background: #fffafb;
   }
   .diary p { margin: 0 0 10px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+  .part-label { font-size: 12px; font-weight: bold; color: #b03060; margin: 10px 0 4px; }
+  .part-label:first-child { margin-top: 0; }
   button.copy {
     padding: 8px 18px;
     font-size: 14px;
@@ -76,6 +78,7 @@
     border: none;
     border-radius: 999px;
     cursor: pointer;
+    margin-bottom: 6px;
   }
   button.copy.done { background: #d6336c; color: #fff; }
   .foot { text-align: center; font-size: 12px; color: #c09bab; margin-top: 24px; }
@@ -84,7 +87,7 @@
 <body>
 <div class="wrap">
   <h1>📸 写メ日記メーカー</h1>
-  <p class="sub">条件を選ぶと、写メ日記の文章を3パターン作ります</p>
+  <p class="sub">条件を選ぶと、写メ日記の文章を1パターン作ります<br>もう一度押すと、別のパターンが出ます</p>
 
   <div class="card">
     <label for="name">名前（源氏名）</label>
@@ -102,6 +105,13 @@
       <option value="thanks">お礼</option>
       <option value="returns">久しぶりの出勤</option>
       <option value="previews">出勤予告・次回案内</option>
+    </select>
+
+    <label for="length">文章の長さ</label>
+    <select id="length">
+      <option value="short">短め</option>
+      <option value="normal" selected>ふつう</option>
+      <option value="long">長め</option>
     </select>
 
     <label for="time">時間帯</label>
@@ -137,7 +147,7 @@
     </select>
 
     <div class="checks">
-      <label><input type="checkbox" id="useTitle" checked> タイトルも付ける（1行目に入ります）</label>
+      <label><input type="checkbox" id="useTitle" checked> タイトルも付ける（本文とは別にコピーできます）</label>
       <label><input type="checkbox" id="useSeason"> 季節（秋・冬）の話題を追加する</label>
       <label><input type="checkbox" id="useDaily"> 日常の小ネタを追加する</label>
     </div>
@@ -155,12 +165,33 @@
 <script src="patterns.js"></script>
 <script>
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function pickOther(arr, avoid) {
+    if (arr.length <= 1) return arr[0];
+    var v = pick(arr);
+    var guard = 0;
+    while (v === avoid && guard < 10) { v = pick(arr); guard++; }
+    return v;
+  }
   function fill(text, name) { return text.split("{name}").join(name); }
+  function makeCopyButton(text) {
+    var btn = document.createElement("button");
+    btn.className = "copy";
+    btn.textContent = "コピーする";
+    btn.addEventListener("click", function () {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "コピーしました♪";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = "コピーする"; btn.classList.remove("done"); }, 2000);
+      });
+    });
+    return btn;
+  }
 
   document.getElementById("gen").addEventListener("click", function () {
     var name = document.getElementById("name").value.trim() || "わたし";
     var style = document.getElementById("style").value;
     var purpose = document.getElementById("purpose").value;
+    var lengthMode = document.getElementById("length").value;
     var time = document.getElementById("time").value;
     var mood = document.getElementById("mood").value;
     var weather = document.getElementById("weather").value;
@@ -170,73 +201,83 @@
     var useDaily = document.getElementById("useDaily").checked;
 
     var isMature = (style === "mature");
+    var isShort = (lengthMode === "short");
+    var isLong = (lengthMode === "long");
+
+    var moodPool = isMature ? PATTERNS.mature.moods : PATTERNS.moods[mood];
+    var closingPool = isMature ? PATTERNS.mature.closings : PATTERNS.closings;
+
+    var titleText = null;
+    if (useTitle && PATTERNS.titles) {
+      titleText = fill(pick(PATTERNS.titles), name);
+    }
+
+    var lines = [];
+    if (isMature) {
+      lines.push(fill(pick(PATTERNS.mature.greetings[time]), name));
+    } else {
+      lines.push(fill(pick(PATTERNS.greetings[time]), name));
+    }
+
+    if (!isShort) {
+      if (weather) lines.push(fill(pick(PATTERNS.weather[weather]), name));
+      if ((useSeason || isLong) && PATTERNS.season_autumn_winter) {
+        lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
+      }
+      if ((useDaily || isLong) && PATTERNS.daily) {
+        lines.push(fill(pick(PATTERNS.daily), name));
+      }
+    }
+
+    if (purpose === "normal") {
+      if (!isShort) {
+        var moodLine = fill(pick(moodPool), name);
+        lines.push(moodLine);
+        if (isLong) lines.push(fill(pickOther(moodPool, moodLine), name));
+      }
+      lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
+    } else {
+      if (isLong) lines.push(fill(pick(moodPool), name));
+      lines.push(fill(pick(PATTERNS[purpose]), name));
+      if (purpose === "returns" && !isShort) {
+        lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
+      }
+      if (purpose === "returns" && isShort) {
+        lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
+      }
+    }
+
+    lines.push(fill(pick(closingPool), name));
+    var bodyText = lines.join("\n");
 
     var list = document.getElementById("list");
     list.innerHTML = "";
 
-    for (var i = 0; i < 3; i++) {
-      var lines = [];
+    var box = document.createElement("div");
+    box.className = "diary";
 
-      if (useTitle && PATTERNS.titles) {
-        lines.push(fill(pick(PATTERNS.titles), name));
-      }
+    if (titleText !== null) {
+      var tl = document.createElement("div");
+      tl.className = "part-label";
+      tl.textContent = "タイトル";
+      var tp = document.createElement("p");
+      tp.textContent = titleText;
+      box.appendChild(tl);
+      box.appendChild(tp);
+      box.appendChild(makeCopyButton(titleText));
 
-      if (isMature && PATTERNS.mature) {
-        lines.push(fill(pick(PATTERNS.mature.greetings[time]), name));
-      } else {
-        lines.push(fill(pick(PATTERNS.greetings[time]), name));
-      }
-
-      if (weather) lines.push(fill(pick(PATTERNS.weather[weather]), name));
-      if (useSeason && PATTERNS.season_autumn_winter) {
-        lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
-      }
-      if (useDaily && PATTERNS.daily) {
-        lines.push(fill(pick(PATTERNS.daily), name));
-      }
-
-      if (purpose === "normal") {
-        if (isMature && PATTERNS.mature) {
-          lines.push(fill(pick(PATTERNS.mature.moods), name));
-        } else {
-          lines.push(fill(pick(PATTERNS.moods[mood]), name));
-        }
-        lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
-      } else {
-        lines.push(fill(pick(PATTERNS[purpose]), name));
-        if (purpose === "returns") {
-          lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
-        }
-      }
-
-      if (isMature && PATTERNS.mature) {
-        lines.push(fill(pick(PATTERNS.mature.closings), name));
-      } else {
-        lines.push(fill(pick(PATTERNS.closings), name));
-      }
-
-      var text = lines.join("\n");
-
-      var box = document.createElement("div");
-      box.className = "diary";
-      var p = document.createElement("p");
-      p.textContent = text;
-      var btn = document.createElement("button");
-      btn.className = "copy";
-      btn.textContent = "コピーする";
-      (function (t, b) {
-        b.addEventListener("click", function () {
-          navigator.clipboard.writeText(t).then(function () {
-            b.textContent = "コピーしました♪";
-            b.classList.add("done");
-            setTimeout(function () { b.textContent = "コピーする"; b.classList.remove("done"); }, 2000);
-          });
-        });
-      })(text, btn);
-      box.appendChild(p);
-      box.appendChild(btn);
-      list.appendChild(box);
+      var bl = document.createElement("div");
+      bl.className = "part-label";
+      bl.textContent = "本文";
+      box.appendChild(bl);
     }
+
+    var bp = document.createElement("p");
+    bp.textContent = bodyText;
+    box.appendChild(bp);
+    box.appendChild(makeCopyButton(bodyText));
+
+    list.appendChild(box);
     document.getElementById("results").style.display = "block";
     document.getElementById("results").scrollIntoView({ behavior: "smooth" });
   });
