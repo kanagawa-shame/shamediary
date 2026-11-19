@@ -134,7 +134,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>📸 写メ日記メーカー<span class="ver">ver2.09</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver2.10</span></h1>
   <p class="sub">基本を選ぶだけで、写メ日記の文章を1パターン作ります<br>もう一度押すと、別のパターンが出ます</p>
 
   <div class="card">
@@ -274,7 +274,7 @@
   <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
 </div>
 
-<script src="patterns.js?v=2.09"></script>
+<script src="patterns.js?v=2.10"></script>
 <script>
 (function () {
   var genre = "work";
@@ -300,6 +300,32 @@
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function fill(text, name) { return text.split("{name}").join(name); }
+  // 名前が空欄のときは、名前入りの文を避ける（「わたしです」のような文を出さない）。
+  // 名前なしの文が少ないプール（挨拶など）は、名前の自己紹介部分だけを取り除いて使う。
+  function stripName(text) {
+    var t = text
+      .split("、{name}です").join("")
+      .split("{name}です、").join("")
+      .split("{name}です").join("")
+      .split("、{name}だよ").join("")
+      .split("{name}だよ、").join("")
+      .split("{name}だよ").join("")
+      .split(" {name}と").join("")
+      .split("{name}と").join("")
+      .split("{name}は").join("")
+      .split("{name}の").join("")
+      .split("{name}、").join("")
+      .split("{name}").join("");
+    t = t.split("、、").join("、").split("。。").join("。").split(" 、").join(" ");
+    while (t.charAt(0) === "！" || t.charAt(0) === "、" || t.charAt(0) === " ") t = t.slice(1);
+    return t;
+  }
+  function pickFor(pool, name) {
+    if (name) return fill(pick(pool), name);
+    var plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
+    if (plain.length >= 3) return pick(plain);
+    return stripName(pick(pool));
+  }
   function el(id) { return document.getElementById(id); }
 
   function setupChips(boxId, initial, onChange) {
@@ -363,7 +389,7 @@
   function generate() {
     genre = getGenre();
     style = getStyle();
-    var name = el("name").value.trim() || "わたし";
+    var name = el("name").value.trim();
     var timeSlot = el("timeSlot").value;
     var mood = el("mood").value;
     var weather = el("weather").value;
@@ -400,36 +426,36 @@
     else if (genre === "next") { mainPool = PATTERNS.previews; withMood = false; }
 
     var lines = [];
-    lines.push(fill(pick(greetingPool), name));
+    lines.push(pickFor(greetingPool, name));
     if (!short) {
-      if (withMood) lines.push(fill(pick(moodPool), name));
-      if (weather) lines.push(fill(pick(PATTERNS.weather[weather]), name));
+      if (withMood) lines.push(pickFor(moodPool, name));
+      if (weather) lines.push(pickFor(PATTERNS.weather[weather], name));
     }
     var st = fmtTime(el("startTime").value), en = fmtTime(el("endTime").value);
     if (st && en && (genre === "work" || genre === "vacancy" || genre === "before")) {
       lines.push(st + "から" + en + "まで出勤してます♪");
     }
-    if (mainPool) lines.push(fill(pick(mainPool), name));
-    if (withAppeal) lines.push(fill(pick(PATTERNS.appeals[appeal]), name));
+    if (mainPool) lines.push(pickFor(mainPool, name));
+    if (withAppeal) lines.push(pickFor(PATTERNS.appeals[appeal], name));
 
     if (!short) {
       if (topic !== "auto" && TOPIC_POOLS[topic]) {
-        lines.push(fill(pick(PATTERNS[TOPIC_POOLS[topic]]), name));
+        lines.push(pickFor(PATTERNS[TOPIC_POOLS[topic]], name));
         if (topic === "season") useSeason = false;
         if (topic === "daily") useDaily = false;
       }
-      if (useSeason) lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
-      if (useDaily) lines.push(fill(pick(PATTERNS.daily), name));
-      if (useCare) lines.push(fill(pick(PATTERNS.care), name));
+      if (useSeason) lines.push(pickFor(PATTERNS.season_autumn_winter, name));
+      if (useDaily) lines.push(pickFor(PATTERNS.daily, name));
+      if (useCare) lines.push(pickFor(PATTERNS.care, name));
     }
     if (long) {
-      lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
-      lines.push(fill(pick(PATTERNS.daily), name));
-      lines.push(fill(pick(moodPool), name));
+      lines.push(pickFor(PATTERNS.season_autumn_winter, name));
+      lines.push(pickFor(PATTERNS.daily, name));
+      lines.push(pickFor(moodPool, name));
     }
-    lines.push(fill(pick(closingPool), name));
+    lines.push(pickFor(closingPool, name));
 
-    var titleText = fill(pick(PATTERNS.titles), name);
+    var titleText = pickFor(PATTERNS.titles, name);
     titleText = applyEmoji(titleText, emojiMode);
     var bodyText = applyEmoji(lines.join("\n"), emojiMode);
 
