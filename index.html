@@ -134,7 +134,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>📸 写メ日記メーカー<span class="ver">ver2.00</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver2.09</span></h1>
   <p class="sub">基本を選ぶだけで、写メ日記の文章を1パターン作ります<br>もう一度押すと、別のパターンが出ます</p>
 
   <div class="card">
@@ -206,6 +206,8 @@
             <option selected>出勤中</option>
             <option>予約受付中</option>
             <option>残りわずか</option>
+            <option>退勤</option>
+            <option>イベント</option>
           </select>
         </div>
       </div>
@@ -243,6 +245,7 @@
       <div class="checks">
         <label><input type="checkbox" id="useSeason"> 季節（秋・冬）の話題を追加する</label>
         <label><input type="checkbox" id="useDaily"> 日常の小ネタを追加する</label>
+        <label><input type="checkbox" id="useCare"> 体調・気遣いの一言を追加する</label>
       </div>
     </div>
   </details>
@@ -271,7 +274,7 @@
   <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
 </div>
 
-<script src="patterns.js"></script>
+<script src="patterns.js?v=2.09"></script>
 <script>
 (function () {
   var genre = "work";
@@ -370,6 +373,7 @@
     var topic = el("topic").value;
     var useSeason = el("useSeason").checked;
     var useDaily = el("useDaily").checked;
+    var useCare = el("useCare").checked;
     var short = lengthMode === "short";
     var long = lengthMode === "long";
 
@@ -416,6 +420,7 @@
       }
       if (useSeason) lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
       if (useDaily) lines.push(fill(pick(PATTERNS.daily), name));
+      if (useCare) lines.push(fill(pick(PATTERNS.care), name));
     }
     if (long) {
       lines.push(fill(pick(PATTERNS.season_autumn_winter), name));
