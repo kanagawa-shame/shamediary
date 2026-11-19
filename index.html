@@ -2,246 +2,179 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>写メ日記メーカー</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
-    background: #fff5f7;
-    color: #4a3540;
-    margin: 0;
-    padding: 16px;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif; background: #f7e8ec; color: #4a3540; margin: 0; }
+  .phone { max-width: 430px; margin: 0 auto; background: #fff5f7; min-height: 100dvh; padding: 14px 14px 110px; box-shadow: 0 0 24px rgba(0,0,0,.08); }
+  h1 { font-size: 20px; text-align: center; color: #d6336c; margin: 4px 0 2px; }
+  .ver { font-size: 12px; color: #9c5a72; font-weight: normal; margin-left: 6px; }
+  .tapcount { text-align: center; font-size: 13px; color: #6d4a59; margin: 0 0 14px; }
+  .tapcount b { color: #d6336c; font-size: 16px; }
+  .name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .name-row label { font-size: 13px; font-weight: bold; color: #b03060; flex: none; }
+  .name-row input { flex: 1; height: 46px; padding: 0 12px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; }
+  .name-row .saved { font-size: 11px; color: #2f9e63; flex: none; display: none; }
+  .name-note { font-size: 12px; color: #8a5a6c; margin: 0 0 12px 44px; }
+  .last-box { background: #fff; border: 2px solid #e75480; border-radius: 16px; padding: 14px; margin-bottom: 16px; }
+  .last-box .lt { font-size: 13px; font-weight: bold; color: #b03060; margin-bottom: 4px; }
+  .last-box .ld { font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
+  button.quick-gen {
+    width: 100%; height: 54px; font-size: 17px; font-weight: bold; color: #fff;
+    background: #e75480; border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
   }
-  .wrap { max-width: 560px; margin: 0 auto; }
-  h1 { font-size: 22px; text-align: center; color: #d6336c; margin: 8px 0 4px; }
-  .ver { font-size: 12px; color: #b56b87; font-weight: normal; margin-left: 6px; vertical-align: middle; }
-  .sub { text-align: center; font-size: 13px; color: #a3768a; margin-bottom: 20px; }
-  .card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(214, 51, 108, 0.08);
+  button.quick-gen:active { background: #d6336c; }
+  .sec { font-size: 14px; font-weight: bold; color: #b03060; margin: 0 0 10px; }
+  .sec small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .tile {
+    min-height: 68px; border: 2px solid #f3c6d3; background: #fff; border-radius: 14px;
+    font-size: 14px; font-weight: bold; color: #4a3540; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.35; padding: 8px 4px;
   }
-  .sec-title { font-size: 12px; font-weight: bold; color: #b03060; margin-bottom: 10px; }
-  label { display: block; font-size: 13px; font-weight: bold; color: #b03060; margin: 12px 0 6px; }
-  label:first-child { margin-top: 0; }
-  input[type="text"], input[type="time"], select, textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid #f3c6d3;
-    border-radius: 10px;
-    font-size: 16px;
-    background: #fff;
-    color: #4a3540;
-    font-family: inherit;
+  .tile.on { background: #d6336c; border-color: #d6336c; color: #fff; }
+  .style-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .style-row button {
+    flex: 1; min-height: 48px; border: none; border-radius: 999px; background: #ffe3ec; color: #c2255c;
+    font-size: 14px; cursor: pointer; font-family: inherit; padding: 10px 8px;
   }
-  textarea { line-height: 1.7; resize: vertical; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip {
-    border: none;
-    background: #ffe3ec;
-    color: #d6336c;
-    border-radius: 999px;
-    padding: 7px 13px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-  }
+  .style-row button.on { background: #d6336c; color: #fff; font-weight: bold; }
+  details { background: #fff; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
+  details summary { min-height: 52px; display: flex; align-items: center; padding: 8px 16px; font-size: 14px; font-weight: bold; color: #b03060; cursor: pointer; list-style: none; }
+  details .dbody { padding: 0 16px 16px; font-size: 14px; line-height: 1.7; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+  .chip { min-height: 44px; border: none; background: #ffe3ec; color: #c2255c; border-radius: 999px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; }
   .chip.on { background: #d6336c; color: #fff; font-weight: bold; }
-  details.card { padding: 0; }
-  details.card summary {
-    padding: 14px 16px;
-    font-size: 13px;
-    font-weight: bold;
-    color: #b03060;
-    cursor: pointer;
-    list-style: none;
-  }
-  details.card .detail-body { padding: 0 16px 16px; }
-  .row2 { display: flex; gap: 10px; }
-  .row2 > div { flex: 1; }
-  .checks { margin-top: 14px; }
-  .checks label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: normal;
-    color: #4a3540;
-    margin: 8px 0;
-    cursor: pointer;
-  }
-  .checks input[type="checkbox"] { width: 18px; height: 18px; accent-color: #d6336c; }
-  button.generate {
-    width: 100%;
-    padding: 14px;
-    font-size: 17px;
-    font-weight: bold;
-    color: #fff;
-    background: #e75480;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    margin-bottom: 16px;
-  }
-  button.generate:active { background: #d6336c; }
-  .result { display: none; }
-  .count { font-size: 12px; color: #a3768a; font-weight: normal; }
-  .btn-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  button.copy {
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: bold;
-    color: #d6336c;
-    background: #ffe3ec;
-    border: none;
-    border-radius: 999px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  button.copy.main { background: #d6336c; color: #fff; }
-  button.copy.done { background: #d6336c; color: #fff; }
-  button.nav {
-    padding: 7px 13px;
-    font-size: 13px;
-    color: #b03060;
-    background: #fff;
-    border: 1.5px solid #f3c6d3;
-    border-radius: 999px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  button.nav:disabled { opacity: 0.4; cursor: default; }
+  .mini-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 10px 0 0; }
+  select.rsel { width: 100%; height: 46px; padding: 0 10px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; margin: 6px 0 14px; }
+  .time-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 14px; }
+  .time-row input { flex: 1; height: 46px; padding: 0 10px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; }
+  .time-row .tilde { color: #8a5a6c; font-weight: bold; }
+  .time-row .tlabel { font-size: 12px; color: #8a5a6c; }
+  .checks { margin-top: 6px; }
+  .checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #4a3540; margin: 10px 0; cursor: pointer; }
+  .checks input[type="checkbox"] { width: 18px; height: 18px; accent-color: #d6336c; flex: none; }
+  .result { display: none; background: #fff; border-radius: 16px; padding: 18px 16px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
+  .sec-title { font-size: 14px; font-weight: bold; color: #b03060; margin-bottom: 10px; }
+  label.rl { display: block; font-size: 14px; font-weight: bold; color: #b03060; margin: 12px 0 8px; }
+  .count { font-size: 12px; color: #8a5a6c; font-weight: normal; }
+  input.rin, textarea.rta { width: 100%; padding: 12px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; line-height: 1.7; background: #fff; color: #4a3540; font-family: inherit; }
+  textarea.rta { resize: vertical; }
+  .btn-col { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  button.copy, button.nav2 { min-height: 44px; padding: 10px 14px; font-size: 14px; font-weight: bold; border-radius: 999px; cursor: pointer; font-family: inherit; flex: 1; }
+  button.copy { color: #c2255c; background: #ffe3ec; border: none; }
+  button.copy.main { background: #d6336c; color: #fff; min-height: 52px; font-size: 16px; }
+  button.copy.done { background: #2f9e63; color: #fff; }
+  button.nav2 { color: #b03060; background: #fff; border: 1.5px solid #f3c6d3; }
+  button.nav2:disabled { opacity: 0.4; cursor: default; }
   .history { display: none; margin-top: 12px; border-top: 1px dashed #f3c6d3; padding-top: 10px; }
   .history button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: #fffafb;
-    border: 1px solid #f3c6d3;
-    border-radius: 10px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    font-size: 13px;
-    color: #4a3540;
-    cursor: pointer;
-    font-family: inherit;
+    display: block; width: 100%; text-align: left; background: #fffafb; border: 1px solid #f3c6d3;
+    border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; font-size: 13px; color: #4a3540;
+    cursor: pointer; font-family: inherit;
   }
-  .history .h-time { font-size: 11px; color: #a3768a; display: block; }
-  .foot { text-align: center; font-size: 12px; color: #c09bab; margin-top: 24px; }
+  .history .h-time { font-size: 11px; color: #a58393; display: block; }
+  .sticky-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(255,245,247,.96); border-top: 1px solid #f3c6d3; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .sticky-inner { max-width: 430px; margin: 0 auto; }
+  .foot { text-align: center; font-size: 12px; color: #a58393; margin-top: 16px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>📸 写メ日記メーカー<span class="ver">ver2.10</span></h1>
-  <p class="sub">基本を選ぶだけで、写メ日記の文章を1パターン作ります<br>もう一度押すと、別のパターンが出ます</p>
+<div class="phone">
+  <h1>📸 写メ日記メーカー<span class="ver">ver3.00</span></h1>
+  <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
-  <div class="card">
-    <div class="sec-title">① 基本（これだけで作れる）</div>
-    <label for="name">名前（源氏名）</label>
-    <input type="text" id="name" placeholder="例：あい">
+  <div class="name-row">
+    <label for="name">名前</label>
+    <input type="text" id="name" placeholder="空欄でもOK">
+    <span class="saved" id="nameSaved">✓ 保存済み</span>
+  </div>
+  <p class="name-note">※名前は入れなくても、そのまま作れます（空欄OK）</p>
 
-    <label>ジャンル</label>
-    <div class="chips" id="genreChips">
-      <button type="button" class="chip on" data-v="work">出勤中</button>
-      <button type="button" class="chip" data-v="vacancy">空き枠</button>
-      <button type="button" class="chip" data-v="before">出勤前</button>
-      <button type="button" class="chip" data-v="thanks">お礼</button>
-      <button type="button" class="chip" data-v="comeback">久しぶり</button>
-      <button type="button" class="chip" data-v="after">退勤後</button>
-      <button type="button" class="chip" data-v="food">ごはん・カフェ</button>
-      <button type="button" class="chip" data-v="beauty">美容・ファッション</button>
-      <button type="button" class="chip" data-v="next">次回予定</button>
-    </div>
-
-    <label>文体</label>
-    <div class="chips" id="styleChips">
-      <button type="button" class="chip on" data-v="cute">かわいい系</button>
-      <button type="button" class="chip" data-v="adult">しっとり・大人系（人妻・熟女）</button>
-    </div>
+  <div class="last-box">
+    <div class="lt">⏱ 前回の設定でもう一度</div>
+    <div class="ld" id="lastSettings">出勤中／しっとり・大人系</div>
+    <button type="button" class="quick-gen" id="quickGenBtn">この設定で作る♪</button>
   </div>
 
-  <details class="card">
-    <summary>② くわしく選ぶ（任意）▸ タップで開く</summary>
-    <div class="detail-body">
-      <label for="topic">話題</label>
-      <select id="topic"></select>
+  <p class="sec">ジャンル <small>（選ぶだけ。作るのは下のボタンで）</small></p>
+  <div class="tiles" id="genreChips">
+    <button type="button" class="tile on" data-v="work">出勤中</button>
+    <button type="button" class="tile" data-v="vacancy">空き枠</button>
+    <button type="button" class="tile" data-v="before">出勤前</button>
+    <button type="button" class="tile" data-v="thanks">お礼</button>
+    <button type="button" class="tile" data-v="comeback">久しぶり</button>
+    <button type="button" class="tile" data-v="after">退勤後</button>
+    <button type="button" class="tile" data-v="food">ごはん・カフェ</button>
+    <button type="button" class="tile" data-v="beauty">美容・ファッション</button>
+    <button type="button" class="tile" data-v="next">次回予定</button>
+  </div>
 
-      <div class="row2">
-        <div>
-          <label for="timeSlot">時間帯</label>
-          <select id="timeSlot">
-            <option>朝</option>
-            <option selected>昼</option>
-            <option>夕方</option>
-            <option>夜</option>
-          </select>
-        </div>
-        <div>
-          <label for="mood">今日の気分</label>
-          <select id="mood">
-            <option selected>元気</option>
-            <option>まったり</option>
-            <option>甘えたい</option>
-            <option>大人っぽい</option>
-          </select>
-        </div>
+  <p class="sec">文体</p>
+  <div class="style-row" id="styleChips">
+    <button type="button" class="on" data-v="adult">しっとり・大人系</button>
+    <button type="button" data-v="cute">かわいい系</button>
+  </div>
+
+  <details>
+    <summary>お好み（任意）▸ 出勤時間・話題・時間帯・気分・天気など</summary>
+    <div class="dbody">
+      <p style="font-size:12px;color:#8a5a6c;margin:4px 0 0;">※お好みの選択は保存されません（履歴に残らず、毎回その場だけの設定です）</p>
+      <p class="mini-label">出勤時間</p>
+      <div class="time-row">
+        <span class="tlabel">開始</span>
+        <input type="time" id="startTime">
+        <span class="tilde">〜</span>
+        <span class="tlabel">終了</span>
+        <input type="time" id="endTime">
       </div>
-
-      <div class="row2">
-        <div>
-          <label for="weather">天気</label>
-          <select id="weather">
-            <option value="" selected>なし</option>
-            <option>晴れ</option>
-            <option>雨</option>
-            <option>曇り</option>
-            <option>雪</option>
-          </select>
-        </div>
-        <div>
-          <label for="appeal">アピール</label>
-          <select id="appeal">
-            <option selected>出勤中</option>
-            <option>予約受付中</option>
-            <option>残りわずか</option>
-            <option>退勤</option>
-            <option>イベント</option>
-          </select>
-        </div>
+      <p class="mini-label">話題</p>
+      <select class="rsel" id="topic"></select>
+      <p class="mini-label">時間帯</p>
+      <div class="chips" id="timeChips">
+        <button type="button" class="chip" data-v="朝">朝</button>
+        <button type="button" class="chip on" data-v="昼">昼</button>
+        <button type="button" class="chip" data-v="夕方">夕方</button>
+        <button type="button" class="chip" data-v="夜">夜</button>
       </div>
-
-      <div class="row2">
-        <div>
-          <label for="startTime">出勤 開始</label>
-          <input type="time" id="startTime">
-        </div>
-        <div>
-          <label for="endTime">出勤 終了</label>
-          <input type="time" id="endTime">
-        </div>
+      <p class="mini-label">今日の気分</p>
+      <div class="chips" id="moodChips">
+        <button type="button" class="chip on" data-v="元気">元気</button>
+        <button type="button" class="chip" data-v="まったり">まったり</button>
+        <button type="button" class="chip" data-v="甘えたい">甘えたい</button>
+        <button type="button" class="chip" data-v="大人っぽい">大人っぽい</button>
       </div>
-
-      <div class="row2">
-        <div>
-          <label for="lengthSel">文章の長さ</label>
-          <select id="lengthSel">
-            <option value="short">短め</option>
-            <option value="normal" selected>ふつう</option>
-            <option value="long">長め</option>
-          </select>
-        </div>
-        <div>
-          <label for="emojiSel">絵文字の量</label>
-          <select id="emojiSel">
-            <option value="none">なし</option>
-            <option value="some" selected>控えめ</option>
-            <option value="many">多め</option>
-          </select>
-        </div>
+      <p class="mini-label">天気</p>
+      <select class="rsel" id="weather">
+        <option value="" selected>なし</option>
+        <option>晴れ</option>
+        <option>雨</option>
+        <option>曇り</option>
+        <option>雪</option>
+      </select>
+      <p class="mini-label">アピール</p>
+      <select class="rsel" id="appeal">
+        <option selected>出勤中</option>
+        <option>予約受付中</option>
+        <option>残りわずか</option>
+        <option>退勤</option>
+        <option>イベント</option>
+        <option>出勤変更</option>
+      </select>
+      <p class="mini-label">文章の長さ</p>
+      <div class="chips" id="lengthChips">
+        <button type="button" class="chip" data-v="short">短め</button>
+        <button type="button" class="chip on" data-v="normal">ふつう</button>
+        <button type="button" class="chip" data-v="long">長め</button>
       </div>
-
+      <p class="mini-label">絵文字の量</p>
+      <div class="chips" id="emojiChips">
+        <button type="button" class="chip" data-v="none">なし</button>
+        <button type="button" class="chip on" data-v="some">控えめ</button>
+        <button type="button" class="chip" data-v="many">多め</button>
+      </div>
       <div class="checks">
         <label><input type="checkbox" id="useSeason"> 季節（秋・冬）の話題を追加する</label>
         <label><input type="checkbox" id="useDaily"> 日常の小ネタを追加する</label>
@@ -250,23 +183,25 @@
     </div>
   </details>
 
-  <button class="generate" id="generateBtn">文章を作る♪</button>
-
-  <div class="card result" id="resultCard">
-    <div class="sec-title">③ 完成（そのまま編集できます）</div>
-    <label for="titleText">タイトル <span class="count" id="titleCount"></span></label>
-    <input type="text" id="titleText">
-    <label for="bodyText">本文 <span class="count" id="bodyCount"></span></label>
-    <textarea id="bodyText" rows="9"></textarea>
-    <div class="btn-row">
+  <div class="result" id="resultCard">
+    <div class="sec-title">完成（そのまま編集できます）</div>
+    <label class="rl" for="titleText">タイトル <span class="count" id="titleCount"></span></label>
+    <input class="rin" type="text" id="titleText">
+    <label class="rl" for="bodyText">本文 <span class="count" id="bodyCount"></span></label>
+    <textarea class="rta" id="bodyText" rows="8"></textarea>
+    <div class="btn-col">
       <button type="button" class="copy main" id="copyBoth">タイトル＋本文をコピー</button>
+    </div>
+    <div class="btn-row">
       <button type="button" class="copy" id="copyBody">本文のみ</button>
       <button type="button" class="copy" id="copyTitle">タイトルのみ</button>
     </div>
     <div class="btn-row">
-      <button type="button" class="nav" id="backBtn">← 前の候補</button>
-      <button type="button" class="nav" id="againBtn">別パターン</button>
-      <button type="button" class="nav" id="historyBtn">履歴（0件）</button>
+      <button type="button" class="nav2" id="backBtn">← 前の候補</button>
+      <button type="button" class="nav2" id="againBtn">別パターン</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="nav2" id="historyBtn">履歴（0件）</button>
     </div>
     <div class="history" id="historyBox"></div>
   </div>
@@ -274,13 +209,30 @@
   <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
 </div>
 
-<script src="patterns.js?v=2.10"></script>
+<div class="sticky-bar">
+  <div class="sticky-inner">
+    <button type="button" class="quick-gen" id="generateBtn">文章を作る♪</button>
+  </div>
+</div>
+
+<script src="patterns.js?v=3.00"></script>
 <script>
 (function () {
-  var genre = "work";
-  var style = "cute";
+  // 端末に保存するのは名前・ジャンル・文体だけ（お好みの選択は保存しない）
+  var store = {
+    get: function (k) { try { return localStorage.getItem("shamediary." + k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem("shamediary." + k, v); } catch (e) {} }
+  };
+  var genre = store.get("genre") || "work";
+  var style = store.get("style") || "adult";
   var results = [];
   var pos = -1;
+
+  var GENRE_LABELS = { work: "出勤中", vacancy: "空き枠", before: "出勤前", thanks: "お礼", comeback: "久しぶり", after: "退勤後", food: "ごはん・カフェ", beauty: "美容・ファッション", next: "次回予定" };
+  var STYLE_LABELS = { adult: "しっとり・大人系", cute: "かわいい系" };
+  function updateLastBox() {
+    el("lastSettings").textContent = (GENRE_LABELS[genre] || genre) + "／" + (STYLE_LABELS[style] || style);
+  }
 
   var TOPICS = {
     work:    [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
@@ -326,13 +278,22 @@
     if (plain.length >= 3) return pick(plain);
     return stripName(pick(pool));
   }
+  // すでに使った行と重ならないように引く（長めモードの追加行用）
+  function pickFresh(pool, name, used) {
+    var t = pickFor(pool, name), tries = 0;
+    while (used.indexOf(t) !== -1 && tries < 8) { t = pickFor(pool, name); tries++; }
+    used.push(t);
+    return t;
+  }
   function el(id) { return document.getElementById(id); }
 
   function setupChips(boxId, initial, onChange) {
     var box = el(boxId);
-    var chips = box.querySelectorAll(".chip");
+    var chips = box.querySelectorAll("[data-v]");
     var value = initial;
     chips.forEach(function (chip) {
+      if (chip.getAttribute("data-v") === value) chip.classList.add("on");
+      else chip.classList.remove("on");
       chip.addEventListener("click", function () {
         chips.forEach(function (c) { c.classList.remove("on"); });
         chip.classList.add("on");
@@ -343,11 +304,21 @@
     return function () { return value; };
   }
 
-  var getGenre = setupChips("genreChips", "work", function (v) {
+  var getGenre = setupChips("genreChips", genre, function (v) {
     genre = v;
+    store.set("genre", v);
+    updateLastBox();
     buildTopics();
   });
-  var getStyle = setupChips("styleChips", "cute", function (v) { style = v; });
+  var getStyle = setupChips("styleChips", style, function (v) {
+    style = v;
+    store.set("style", v);
+    updateLastBox();
+  });
+  var getTimeSlot = setupChips("timeChips", "昼", function () {});
+  var getMood = setupChips("moodChips", "元気", function () {});
+  var getLength = setupChips("lengthChips", "normal", function () {});
+  var getEmoji = setupChips("emojiChips", "some", function () {});
 
   function buildTopics() {
     var sel = el("topic");
@@ -377,9 +348,19 @@
       var marks = ["✨", "💕", "🌸", "♪"];
       var lines = text.split("\n");
       for (var i = 0; i < lines.length; i++) {
-        if (lines[i] && !/[✨💕🌸♪☀️🍁]$/.test(lines[i]) && Math.random() < 0.6) {
-          lines[i] = lines[i] + pick(marks);
+        var line = lines[i];
+        if (!line) continue;
+        var added = 0;
+        // 文の途中（文の切れ目の後）にも入れる。1行につき追加は最大2個まで
+        var segs = line.split("。");
+        for (var j = 0; j < segs.length - 1; j++) {
+          segs[j] += "。";
+          if (added < 1 && segs[j].length > 6 && Math.random() < 0.5) { segs[j] += pick(marks); added++; }
         }
+        line = segs.join("");
+        // 行末に絵文字がなければ、必ず1個足す
+        if (!/[✨💕🌸♪☀️🍁⛄☔]$/.test(line)) { line += pick(marks); added++; }
+        lines[i] = line;
       }
       return lines.join("\n");
     }
@@ -390,12 +371,12 @@
     genre = getGenre();
     style = getStyle();
     var name = el("name").value.trim();
-    var timeSlot = el("timeSlot").value;
-    var mood = el("mood").value;
+    var timeSlot = getTimeSlot();
+    var mood = getMood();
     var weather = el("weather").value;
     var appeal = el("appeal").value;
-    var lengthMode = el("lengthSel").value;
-    var emojiMode = el("emojiSel").value;
+    var lengthMode = getLength();
+    var emojiMode = getEmoji();
     var topic = el("topic").value;
     var useSeason = el("useSeason").checked;
     var useDaily = el("useDaily").checked;
@@ -436,7 +417,7 @@
       lines.push(st + "から" + en + "まで出勤してます♪");
     }
     if (mainPool) lines.push(pickFor(mainPool, name));
-    if (withAppeal) lines.push(pickFor(PATTERNS.appeals[appeal], name));
+    if (withAppeal && !(short && mainPool)) lines.push(pickFor(PATTERNS.appeals[appeal], name));
 
     if (!short) {
       if (topic !== "auto" && TOPIC_POOLS[topic]) {
@@ -449,13 +430,29 @@
       if (useCare) lines.push(pickFor(PATTERNS.care, name));
     }
     if (long) {
-      lines.push(pickFor(PATTERNS.season_autumn_winter, name));
-      lines.push(pickFor(PATTERNS.daily, name));
-      lines.push(pickFor(moodPool, name));
+      var used = lines.slice();
+      lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
+      lines.push(pickFresh(PATTERNS.daily, name, used));
+      lines.push(pickFresh(moodPool, name, used));
+      lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
+      lines.push(pickFresh(PATTERNS.daily, name, used));
+      lines.push(pickFresh(PATTERNS.care, name, used));
+      if (topic !== "auto" && TOPIC_POOLS[topic]) lines.push(pickFresh(PATTERNS[TOPIC_POOLS[topic]], name, used));
     }
-    lines.push(pickFor(closingPool, name));
+    // 締め：朝・昼のときは夜系（おやすみ・良い夢など）を出さない
+    var closingUse = closingPool;
+    if ((timeSlot === "朝" || timeSlot === "昼") && PATTERNS.nightClosings) {
+      closingUse = closingPool.filter(function (t) { return PATTERNS.nightClosings.indexOf(t) === -1; });
+      if (!closingUse.length) closingUse = closingPool;
+    }
+    lines.push(pickFor(closingUse, name));
 
-    var titleText = pickFor(PATTERNS.titles, name);
+    // タイトル：夜・深夜系は時間帯「夜」のときだけ出す
+    var titlePool = PATTERNS.titles;
+    if (timeSlot !== "夜" && PATTERNS.nightTitles) {
+      titlePool = titlePool.filter(function (t) { return PATTERNS.nightTitles.indexOf(t) === -1; });
+    }
+    var titleText = pickFor(titlePool, name);
     titleText = applyEmoji(titleText, emojiMode);
     var bodyText = applyEmoji(lines.join("\n"), emojiMode);
 
@@ -474,6 +471,7 @@
     var r = results[pos];
     if (!r) return;
     el("resultCard").style.display = "block";
+    if (el("resultCard").scrollIntoView) el("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
     el("titleText").value = r.title;
     el("bodyText").value = r.body;
     el("backBtn").disabled = pos <= 0;
@@ -522,7 +520,19 @@
     }
   }
 
+  el("name").value = store.get("name") || "";
+  function syncNameSaved() {
+    el("nameSaved").style.display = el("name").value.trim() ? "inline" : "none";
+  }
+  el("name").addEventListener("input", function () {
+    store.set("name", el("name").value.trim());
+    syncNameSaved();
+  });
+  syncNameSaved();
+  updateLastBox();
+
   el("generateBtn").addEventListener("click", generate);
+  el("quickGenBtn").addEventListener("click", generate);
   el("againBtn").addEventListener("click", generate);
   el("backBtn").addEventListener("click", function () {
     if (pos > 0) { pos--; showResult(); }
