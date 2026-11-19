@@ -83,7 +83,7 @@
 </head>
 <body>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver3.01</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver3.03</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -215,7 +215,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=3.01"></script>
+<script src="patterns.js?v=3.03"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（お好みの選択は保存しない）
@@ -273,6 +273,9 @@
     return t;
   }
   var currentSlot = "昼";
+  // 重複防止：直近3回分の生成で使った文を覚えて、続けて同じ文が出ないようにする（ページを開いている間だけ有効）
+  var recentGens = [];
+  var genUsed = null;
   // 時間帯に合わない本文行を抽選から外す（patterns.js のタグ方式）
   function timeFilter(pool, slot) {
     if (!pool || !PATTERNS.nightLines) return pool;
@@ -288,10 +291,19 @@
 
   function pickFor(pool, name) {
     pool = timeFilter(pool, currentSlot);
-    if (name) return fill(pick(pool), name);
-    var plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
-    if (plain.length >= 3) return pick(plain);
-    return stripName(pick(pool));
+    var plain = null;
+    if (!name) plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
+    var usePlain = !name && plain.length >= 3;
+    var candidates = usePlain ? plain : pool;
+    function render(t) { return name ? fill(t, name) : (usePlain ? t : stripName(t)); }
+    // 直近3回分＋今回の生成で使った文は、プールに余裕がある限り避ける
+    var avoid = genUsed || [];
+    recentGens.forEach(function (g) { avoid = avoid.concat(g); });
+    var fresh = candidates.filter(function (t) { return avoid.indexOf(render(t)) === -1; });
+    var chosen = pick(fresh.length ? fresh : candidates);
+    var out = render(chosen);
+    if (genUsed) genUsed.push(out);
+    return out;
   }
   // すでに使った行と重ならないように引く（長めモードの追加行用）
   function pickFresh(pool, name, used) {
@@ -388,6 +400,7 @@
     var name = el("name").value.trim();
     var timeSlot = getTimeSlot();
     currentSlot = timeSlot;
+    genUsed = [];
     var mood = getMood();
     var weather = el("weather").value;
     var appeal = el("appeal").value;
@@ -468,9 +481,21 @@
     if (timeSlot !== "夜" && PATTERNS.nightTitles) {
       titlePool = titlePool.filter(function (t) { return PATTERNS.nightTitles.indexOf(t) === -1; });
     }
+    // タイトル：夕方・夜系は「夕方・夜」のときだけ、朝系は「朝・昼」のときだけ出す
+    if (timeSlot !== "夕方" && timeSlot !== "夜" && PATTERNS.duskTitles) {
+      titlePool = titlePool.filter(function (t) { return PATTERNS.duskTitles.indexOf(t) === -1; });
+    }
+    if (timeSlot !== "朝" && timeSlot !== "昼" && PATTERNS.morningTitles) {
+      titlePool = titlePool.filter(function (t) { return PATTERNS.morningTitles.indexOf(t) === -1; });
+    }
     var titleText = pickFor(titlePool, name);
     titleText = applyEmoji(titleText, emojiMode);
     var bodyText = applyEmoji(lines.join("\n"), emojiMode);
+
+    // 重複防止：今回使った文を直近3回分として覚える
+    recentGens.push(genUsed);
+    if (recentGens.length > 3) recentGens.shift();
+    genUsed = null;
 
     results.push({ title: titleText, body: bodyText, at: new Date() });
     if (results.length > 20) results.shift();
