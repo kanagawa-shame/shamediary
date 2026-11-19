@@ -83,7 +83,7 @@
 </head>
 <body>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver3.00</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver3.01</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -215,7 +215,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=3.00"></script>
+<script src="patterns.js?v=3.01"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（お好みの選択は保存しない）
@@ -272,7 +272,22 @@
     while (t.charAt(0) === "！" || t.charAt(0) === "、" || t.charAt(0) === " ") t = t.slice(1);
     return t;
   }
+  var currentSlot = "昼";
+  // 時間帯に合わない本文行を抽選から外す（patterns.js のタグ方式）
+  function timeFilter(pool, slot) {
+    if (!pool || !PATTERNS.nightLines) return pool;
+    var ban = [];
+    if (slot === "朝") ban = PATTERNS.nightLines.concat(PATTERNS.noonLines || []);
+    else if (slot === "昼") ban = PATTERNS.nightLines;
+    else if (slot === "夕方") ban = PATTERNS.morningLines || [];
+    else if (slot === "夜") ban = (PATTERNS.morningLines || []).concat(PATTERNS.noonLines || []);
+    if (!ban.length) return pool;
+    var f = pool.filter(function (t) { return ban.indexOf(t) === -1; });
+    return f.length ? f : pool;
+  }
+
   function pickFor(pool, name) {
+    pool = timeFilter(pool, currentSlot);
     if (name) return fill(pick(pool), name);
     var plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
     if (plain.length >= 3) return pick(plain);
@@ -372,6 +387,7 @@
     style = getStyle();
     var name = el("name").value.trim();
     var timeSlot = getTimeSlot();
+    currentSlot = timeSlot;
     var mood = getMood();
     var weather = el("weather").value;
     var appeal = el("appeal").value;
