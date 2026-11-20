@@ -79,11 +79,12 @@
   .sticky-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(255,245,247,.96); border-top: 1px solid #f3c6d3; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .sticky-inner { max-width: 430px; margin: 0 auto; }
   .foot { text-align: center; font-size: 12px; color: #a58393; margin-top: 16px; }
+  .foot a { color: #c26d8d; }
 </style>
 </head>
 <body>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver3.03</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver3.13</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -162,6 +163,7 @@
         <option>退勤</option>
         <option>イベント</option>
         <option>出勤変更</option>
+        <option>待機中</option>
       </select>
       <p class="mini-label">文章の長さ</p>
       <div class="chips" id="lengthChips">
@@ -207,6 +209,7 @@
   </div>
 
   <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
+  <p class="foot"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdBHFQvsFZiMm-3d9d8kMRR3flmK6i-_buNSa3PjlE2RPTe1g/viewform" target="_blank" rel="noopener">💡 改善・要望はこちら</a></p>
 </div>
 
 <div class="sticky-bar">
@@ -215,7 +218,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=3.03"></script>
+<script src="patterns.js?v=3.13"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（お好みの選択は保存しない）
