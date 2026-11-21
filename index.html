@@ -77,11 +77,26 @@
   .sticky-inner { max-width: 430px; margin: 0 auto; }
   .foot { text-align: center; font-size: 12px; color: #a58393; margin-top: 16px; }
   .foot a { color: #c26d8d; }
+  /* 更新案内バー */
+  .update-bar { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(90deg, #e75480, #d6336c); color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+  .update-bar.show { display: block; }
+  .update-inner { max-width: 430px; margin: 0 auto; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+  .update-text { flex: 1; font-size: 13px; line-height: 1.5; font-weight: 600; }
+  .update-btn { flex: none; border: none; border-radius: 999px; background: #fff; color: #d6336c; font-size: 13px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
+  .update-close { flex: none; border: none; background: transparent; color: #fff; font-size: 18px; line-height: 1; padding: 4px 6px; cursor: pointer; }
+  body.has-update { padding-top: 52px; }
 </style>
 </head>
 <body>
+<div class="update-bar" id="updateBar">
+  <div class="update-inner">
+    <div class="update-text" id="updateText">✨ 新しいバージョンがあります</div>
+    <button type="button" class="update-btn" id="updateBtn">最新にする</button>
+    <button type="button" class="update-close" id="updateClose" aria-label="閉じる">×</button>
+  </div>
+</div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.03</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.04</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -202,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.03"></script>
+<script src="patterns.js?v=4.04"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -647,6 +662,57 @@
   el("copyTitle").addEventListener("click", function () { copyText(el("titleText").value, this); });
   el("titleText").addEventListener("input", updateCounts);
   el("bodyText").addEventListener("input", updateCounts);
+
+  // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
+  var APP_VER = "4.04";
+  var latestVer = null;
+  var dismissedVer = null;
+  function parseVer(v) {
+    var p = String(v).split(".");
+    return [parseInt(p[0], 10) || 0, parseInt(p[1], 10) || 0];
+  }
+  function isNewer(a, b) {
+    var x = parseVer(a), y = parseVer(b);
+    return x[0] > y[0] || (x[0] === y[0] && x[1] > y[1]);
+  }
+  function showUpdateBar() {
+    el("updateText").textContent = "✨ 新しいバージョン（ver" + latestVer + "）があります";
+    el("updateBar").classList.add("show");
+    document.body.classList.add("has-update");
+  }
+  function hideUpdateBar() {
+    el("updateBar").classList.remove("show");
+    document.body.classList.remove("has-update");
+  }
+  function checkUpdate() {
+    try {
+      if (typeof fetch !== "function" || typeof location === "undefined" || !/^https?:$/.test(location.protocol)) return;
+      fetch(location.pathname + "?upd=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          var m = html.match(/class="ver">ver([\d.]+)</);
+          if (!m) return;
+          if (isNewer(m[1], APP_VER) && m[1] !== dismissedVer) {
+            latestVer = m[1];
+            showUpdateBar();
+          }
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+  el("updateBtn").addEventListener("click", function () {
+    // キャッシュを避けたURLで開き直して、確実に最新版を読み込む
+    if (latestVer) location.replace(location.pathname + "?v=" + latestVer);
+    else location.reload();
+  });
+  el("updateClose").addEventListener("click", function () {
+    dismissedVer = latestVer;
+    hideUpdateBar();
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) checkUpdate();
+  });
+  checkUpdate();
 })();
 </script>
 </body>
