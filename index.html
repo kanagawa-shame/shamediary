@@ -96,7 +96,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.12</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.13</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.12"></script>
+<script src="patterns.js?v=4.13"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -325,9 +325,25 @@
     else if (CTX_DEBUT.test(line)) genBan = CTX_BACK;
   }
 
+  // 月の文脈フィルタ：「11月・もうすぐ12月」系と「12月に入った」系も同じ日記に混ぜない
+  var CTX_NOV = /11月も半ば|もうすぐ12月|12月が近づいて|12月のクリスマスイベントが近づいて/;
+  var CTX_DEC = /12月に入りました|12月に入って|12月のご予約も|12月の声|12月の始まり/;
+  var genBanMonth = null; // 今の生成で避ける側（CTX_NOV か CTX_DEC）
+  function monthFilter(pool) {
+    if (!genBanMonth) return pool;
+    var f = pool.filter(function (x) { return !genBanMonth.test(x); });
+    return f.length ? f : pool;
+  }
+  function noteMonth(line) {
+    if (genBanMonth || !line) return;
+    if (CTX_NOV.test(line)) genBanMonth = CTX_DEC;
+    else if (CTX_DEC.test(line)) genBanMonth = CTX_NOV;
+  }
+
   function pickFor(pool, name) {
     pool = weatherFilter(timeFilter(pool, currentSlot));
     pool = ctxFilter(pool);
+    pool = monthFilter(pool);
     var plain = null;
     if (!name) plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
     var usePlain = !name && plain.length >= 3;
@@ -339,6 +355,7 @@
     var fresh = candidates.filter(function (t) { return avoid.indexOf(render(t)) === -1; });
     var chosen = pick(fresh.length ? fresh : candidates);
     noteCtx(chosen);
+    noteMonth(chosen);
     var out = render(chosen);
     if (genUsed) genUsed.push(out);
     return out;
@@ -466,9 +483,12 @@
 
     // 文脈フィルタの初期化：本文だけ作り直すときは、今のタイトルの文脈に合わせる
     genBan = null;
+    genBanMonth = null;
     if (keepTitle && results[pos] && results[pos].title) {
       if (CTX_BACK.test(results[pos].title)) genBan = CTX_DEBUT;
       else if (CTX_DEBUT.test(results[pos].title)) genBan = CTX_BACK;
+      if (CTX_NOV.test(results[pos].title)) genBanMonth = CTX_DEC;
+      else if (CTX_DEC.test(results[pos].title)) genBanMonth = CTX_NOV;
     }
 
     var greetingPool, moodPool, closingPool;
@@ -599,13 +619,31 @@
     if (timeSlot !== "夕方" && timeSlot !== "夜" && PATTERNS.duskTitles) {
       titlePool = titlePool.filter(function (t) { return PATTERNS.duskTitles.indexOf(t) === -1; });
     }
-    if (timeSlot !== "朝" && timeSlot !== "昼" && PATTERNS.morningTitles) {
-      titlePool = titlePool.filter(function (t) { return PATTERNS.morningTitles.indexOf(t) === -1; });
+    if (timeSlot !== "朝" && timeSlot !== "昼") {
+      titlePool = titlePool.filter(function (t) {
+        if (PATTERNS.morningTitles && PATTERNS.morningTitles.indexOf(t) !== -1) return false;
+        if (/午前/.test(t)) return false;
+        return true;
+      });
     }
     // 文脈フィルタ：本文と反対の文脈のタイトルは出さない
     // （本文が「初めて・新人」系なら復帰系タイトルを、本文が復帰系なら新人系タイトルを避ける）
     if (CTX_DEBUT.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_BACK.test(t); });
     else if (CTX_BACK.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_DEBUT.test(t); });
+    // 月の文脈フィルタ：本文と反対の月のタイトルは出さない
+    if (CTX_NOV.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_DEC.test(t); });
+    else if (CTX_DEC.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_NOV.test(t); });
+    // ジャンルとの整合：退勤以外のジャンルでは「本日の出勤はここまで」のタイトルを出さない
+    if (genre !== "after") titlePool = titlePool.filter(function (t) { return !/出勤はここまで/.test(t); });
+    // 退勤・出勤前では「ただいま待機中」のタイトルを出さない
+    if (genre === "after" || genre === "before") titlePool = titlePool.filter(function (t) { return !/ただいま待機中/.test(t); });
+    // 退勤では、当日の出勤開始を言うタイトルを出さない（来週など先の予定のタイトルは出してよい）
+    if (genre === "after") titlePool = titlePool.filter(function (t) { return !/今日は.*出勤します|今夜は.*出勤します|急きょ出勤になりました/.test(t); });
+    // 出勤時間を入力しているジャンル（本文に時間行が出る）では、具体的な時刻・曜日を言うタイトルを
+    // 出さない（入力した時間と食い違うため）
+    if ((genre === "work" || genre === "waiting" || genre === "vacancy" || genre === "before") && el("startTime").value && el("endTime").value) {
+      titlePool = titlePool.filter(function (t) { return !/[0-9０-９]+時|午前|午後|月曜日|火曜日|水曜日|木曜日|金曜日|土曜日|日曜日/.test(t); });
+    }
     return applyEmoji(pickFor(titlePool, name), s.emojiMode);
   }
 
@@ -739,7 +777,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "4.12";
+  var APP_VER = "4.13";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
