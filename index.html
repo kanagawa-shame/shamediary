@@ -81,7 +81,7 @@
 </head>
 <body>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.00</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.03</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -182,12 +182,17 @@
       <button type="button" class="nav2" id="againBtn">別パターン</button>
     </div>
     <div class="btn-row">
+      <button type="button" class="nav2" id="reTitleBtn">タイトルだけ作り直す</button>
+      <button type="button" class="nav2" id="reBodyBtn">本文だけ作り直す</button>
+    </div>
+    <div class="btn-row">
       <button type="button" class="nav2" id="historyBtn">履歴（0件）</button>
     </div>
     <div class="history" id="historyBox"></div>
   </div>
 
   <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
+  <p class="foot">このメーカーは毎日新しいフレーズを追加しています♪<br>表示が古いときは、再読み込み（リロード）してから使ってください</p>
   <p class="foot"><a href="https://docs.google.com/forms/d/e/1FAIpQLSdBHFQvsFZiMm-3d9d8kMRR3flmK6i-_buNSa3PjlE2RPTe1g/viewform" target="_blank" rel="noopener">💡 改善・要望はこちら</a></p>
 </div>
 
@@ -197,7 +202,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.00"></script>
+<script src="patterns.js?v=4.03"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -380,17 +385,25 @@
     return text;
   }
 
-  function generate() {
+  function readSettings() {
     genre = getGenre();
     style = getStyle();
-    var name = el("name").value.trim();
-    var timeSlot = autoSlot();
-    currentSlot = timeSlot;
-    genUsed = [];
+    currentSlot = autoSlot();
     var lengthMode = getLength();
-    var emojiMode = getEmoji();
-    var short = lengthMode === "short";
-    var long = lengthMode === "long";
+    return {
+      name: el("name").value.trim(),
+      timeSlot: currentSlot,
+      emojiMode: getEmoji(),
+      short: lengthMode === "short",
+      long: lengthMode === "long"
+    };
+  }
+
+  function buildBody(s) {
+    var name = s.name;
+    var timeSlot = s.timeSlot;
+    var short = s.short;
+    var long = s.long;
 
     var greetingPool, moodPool, closingPool;
     if (style === "adult" && PATTERNS.mature) {
@@ -452,16 +465,21 @@
         lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
         lines.push(pickFresh(PATTERNS.daily, name, used));
         if (withMood) lines.push(pickFresh(moodPool, name, used));
+        else lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
         lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
         lines.push(pickFresh(PATTERNS.daily, name, used));
         lines.push(pickFresh(PATTERNS.care, name, used));
+        // 気分行のないジャンル（退勤・お礼・次回予定）は追加行をもう1行足して、長さを他ジャンルと揃える
+        if (!withMood) lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
         if (genre === "food") lines.push(pickFresh(pick([PATTERNS.topicLunch, PATTERNS.topicCafe]), name, used));
         if (genre === "beauty") lines.push(pickFresh(pick([PATTERNS.topicHair, PATTERNS.topicMakeup]), name, used));
       } else {
-        // ふつう：ジャンルに合った話題・季節・日常・ケアから自動で1〜2行足す
+        // ふつう：ジャンルに合った話題・季節・日常・ケアから自動で足す
         if (genre === "food") lines.push(pickFresh(pick([PATTERNS.topicLunch, PATTERNS.topicCafe]), name, used));
         else if (genre === "beauty") lines.push(pickFresh(pick([PATTERNS.topicHair, PATTERNS.topicMakeup]), name, used));
         lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
+        // 気分行のないジャンル（退勤・お礼・次回予定）は追加行をもう1行足して、長さを他ジャンルと揃える
+        if (!withMood) lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
       }
     }
     // 締め：夜のとき以外は夜系（おやすみ・良い夢など）を出さない。
@@ -476,7 +494,12 @@
       if (!closingUse.length) closingUse = closingPool;
     }
     lines.push(pickFor(closingUse, name));
+    return applyEmoji(lines.join("\n"), s.emojiMode);
+  }
 
+  function buildTitle(s) {
+    var name = s.name;
+    var timeSlot = s.timeSlot;
     // タイトル：夜・深夜系は時間帯「夜」のときだけ出す（タグ＋キーワード判定）
     var titlePool = PATTERNS.titles;
     if (timeSlot !== "夜") {
@@ -493,18 +516,45 @@
     if (timeSlot !== "朝" && timeSlot !== "昼" && PATTERNS.morningTitles) {
       titlePool = titlePool.filter(function (t) { return PATTERNS.morningTitles.indexOf(t) === -1; });
     }
-    var titleText = pickFor(titlePool, name);
-    titleText = applyEmoji(titleText, emojiMode);
-    var bodyText = applyEmoji(lines.join("\n"), emojiMode);
+    return applyEmoji(pickFor(titlePool, name), s.emojiMode);
+  }
 
-    // 重複防止：今回使った文を直近3回分として覚える
+  // 重複防止：今回使った文を直近3回分として覚える
+  function recordGen() {
     recentGens.push(genUsed);
     if (recentGens.length > 3) recentGens.shift();
     genUsed = null;
+  }
 
+  function generate() {
+    var s = readSettings();
+    genUsed = [];
+    var bodyText = buildBody(s);
+    var titleText = buildTitle(s);
+    recordGen();
     results.push({ title: titleText, body: bodyText, at: new Date() });
     if (results.length > 20) results.shift();
     pos = results.length - 1;
+    showResult();
+  }
+
+  // タイトルだけ作り直す（本文はそのまま残す）
+  function regenerateTitle() {
+    if (pos < 0 || !results[pos]) return;
+    var s = readSettings();
+    genUsed = [];
+    results[pos].title = buildTitle(s);
+    recordGen();
+    showResult();
+  }
+
+  // 本文だけ作り直す（タイトルはそのまま残す）
+  function regenerateBody() {
+    if (pos < 0 || !results[pos]) return;
+    var s = readSettings();
+    genUsed = [];
+    results[pos].body = buildBody(s);
+    recordGen();
     showResult();
   }
 
@@ -581,6 +631,8 @@
   el("generateBtn").addEventListener("click", generate);
   el("quickGenBtn").addEventListener("click", generate);
   el("againBtn").addEventListener("click", generate);
+  el("reTitleBtn").addEventListener("click", regenerateTitle);
+  el("reBodyBtn").addEventListener("click", regenerateBody);
   el("backBtn").addEventListener("click", function () {
     if (pos > 0) { pos--; showResult(); }
   });
