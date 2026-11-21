@@ -96,7 +96,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.04</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.06</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.04"></script>
+<script src="patterns.js?v=4.06"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -301,8 +301,15 @@
     return f;
   }
 
+  // 天気を書いた文（雪・雨・傘を含む文）は、その日の実際の天気と合わないことがあるため抽選から外す
+  function weatherFilter(pool) {
+    if (!pool) return pool;
+    var f = pool.filter(function (t) { return !/雪|雨|傘/.test(t); });
+    return f.length ? f : pool;
+  }
+
   function pickFor(pool, name) {
-    pool = timeFilter(pool, currentSlot);
+    pool = weatherFilter(timeFilter(pool, currentSlot));
     var plain = null;
     if (!name) plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
     var usePlain = !name && plain.length >= 3;
@@ -499,11 +506,13 @@
     }
     // 締め：夜のとき以外は夜系（おやすみ・良い夢など）を出さない。
     // タグ（nightClosings）に加えてキーワードでも判定する（熟女の締めはタグ付けされていないため）
+    // 「今日の日記はここまでです」系の一日の終わりの挨拶も、夜のときだけ出す
     var closingUse = closingPool;
     if (timeSlot !== "夜") {
       closingUse = closingPool.filter(function (t) {
         if (PATTERNS.nightClosings && PATTERNS.nightClosings.indexOf(t) !== -1) return false;
         if (/おやすみ|良い夢|お休みください/.test(t)) return false;
+        if (/日記はここまで|今日はここまで/.test(t)) return false;
         return true;
       });
       if (!closingUse.length) closingUse = closingPool;
@@ -664,7 +673,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "4.04";
+  var APP_VER = "4.06";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
