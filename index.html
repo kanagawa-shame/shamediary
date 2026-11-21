@@ -96,7 +96,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.11</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.12</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.11"></script>
+<script src="patterns.js?v=4.12"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -308,8 +308,26 @@
     return f.length ? f : pool;
   }
 
+  // 文脈フィルタ：「復帰・久しぶり」系と「初めて・新人」系の文は、同じ日記に混ぜない
+  // （例：タイトル「長いお休みをいただいていました」と本文「初めての出勤は緊張しました」が一緒になると不自然なため）
+  var CTX_BACK = /お久しぶり|長いお休み|久しぶりの出勤|お休みをいただいていました/;
+  var CTX_DEBUT = /初めての出勤|初出勤|入店したばかり|デビュー/;
+  var genBan = null;    // 今の生成で避ける側（CTX_BACK か CTX_DEBUT）
+  var curBodyText = ""; // 直近に作った本文（タイトル側の文脈判定に使う）
+  function ctxFilter(pool) {
+    if (!genBan) return pool;
+    var f = pool.filter(function (x) { return !genBan.test(x); });
+    return f.length ? f : pool;
+  }
+  function noteCtx(line) {
+    if (genBan || !line) return;
+    if (CTX_BACK.test(line)) genBan = CTX_DEBUT;
+    else if (CTX_DEBUT.test(line)) genBan = CTX_BACK;
+  }
+
   function pickFor(pool, name) {
     pool = weatherFilter(timeFilter(pool, currentSlot));
+    pool = ctxFilter(pool);
     var plain = null;
     if (!name) plain = pool.filter(function (t) { return t.indexOf("{name}") === -1; });
     var usePlain = !name && plain.length >= 3;
@@ -320,6 +338,7 @@
     recentGens.forEach(function (g) { avoid = avoid.concat(g); });
     var fresh = candidates.filter(function (t) { return avoid.indexOf(render(t)) === -1; });
     var chosen = pick(fresh.length ? fresh : candidates);
+    noteCtx(chosen);
     var out = render(chosen);
     if (genUsed) genUsed.push(out);
     return out;
@@ -439,11 +458,18 @@
     };
   }
 
-  function buildBody(s) {
+  function buildBody(s, keepTitle) {
     var name = s.name;
     var timeSlot = s.timeSlot;
     var short = s.short;
     var long = s.long;
+
+    // 文脈フィルタの初期化：本文だけ作り直すときは、今のタイトルの文脈に合わせる
+    genBan = null;
+    if (keepTitle && results[pos] && results[pos].title) {
+      if (CTX_BACK.test(results[pos].title)) genBan = CTX_DEBUT;
+      else if (CTX_DEBUT.test(results[pos].title)) genBan = CTX_BACK;
+    }
 
     var greetingPool, moodPool, closingPool;
     if (style === "adult" && PATTERNS.mature) {
@@ -466,7 +492,7 @@
     else if (genre === "before") { mainPool = PATTERNS.beforeWork; }
     else if (genre === "after") { mainPool = PATTERNS.appeals["退勤"].concat(PATTERNS.afterWork); withMood = false; }
     else if (genre === "thanks") { mainPool = PATTERNS.thanks; withMood = false; }
-    else if (genre === "comeback") { mainPool = PATTERNS.returns; }
+    else if (genre === "comeback") { mainPool = PATTERNS.returns.filter(function (x) { return !CTX_DEBUT.test(x); }); }
     else if (genre === "event") { mainPool = PATTERNS.appeals["イベント"]; }
     else if (genre === "change") { mainPool = PATTERNS.appeals["出勤変更"]; }
     else if (genre === "next") { mainPool = PATTERNS.previews; withMood = false; }
@@ -553,7 +579,8 @@
       if (!closingUse.length) closingUse = closingPool;
     }
     lines.push(pickFor(closingUse, name));
-    return applyEmoji(lines.join("\n"), s.emojiMode);
+    curBodyText = lines.join("\n");
+    return applyEmoji(curBodyText, s.emojiMode);
   }
 
   function buildTitle(s) {
@@ -575,6 +602,10 @@
     if (timeSlot !== "朝" && timeSlot !== "昼" && PATTERNS.morningTitles) {
       titlePool = titlePool.filter(function (t) { return PATTERNS.morningTitles.indexOf(t) === -1; });
     }
+    // 文脈フィルタ：本文と反対の文脈のタイトルは出さない
+    // （本文が「初めて・新人」系なら復帰系タイトルを、本文が復帰系なら新人系タイトルを避ける）
+    if (CTX_DEBUT.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_BACK.test(t); });
+    else if (CTX_BACK.test(curBodyText)) titlePool = titlePool.filter(function (t) { return !CTX_DEBUT.test(t); });
     return applyEmoji(pickFor(titlePool, name), s.emojiMode);
   }
 
@@ -612,7 +643,7 @@
     if (pos < 0 || !results[pos]) return;
     var s = readSettings();
     genUsed = [];
-    results[pos].body = buildBody(s);
+    results[pos].body = buildBody(s, true);
     recordGen();
     showResult();
   }
@@ -708,7 +739,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "4.11";
+  var APP_VER = "4.12";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
