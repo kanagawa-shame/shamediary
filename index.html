@@ -96,7 +96,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.06</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.11</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.06"></script>
+<script src="patterns.js?v=4.11"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -384,8 +384,26 @@
     if (mode === "none") {
       return text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}♪]/gu, "").replace(/ +/g, " ").trim();
     }
+    // 装飾用の絵文字は文体に合わせて選ぶ（天気・時間帯を断定する絵文字は使わない）
+    var marks = (typeof style !== "undefined" && style === "adult")
+      ? ["✨", "🌷", "☕", "🫧", "💗", "🍀", "⭐", "♪"]
+      : ["✨", "💕", "🌸", "🎀", "🥰", "💖", "⭐", "♪"];
+    var lastMark = "";
+    function pickMark() {
+      var m = pick(marks);
+      while (marks.length > 1 && m === lastMark) m = pick(marks);
+      lastMark = m;
+      return m;
+    }
+    if (mode === "some") {
+      // 控えめ：基本的には文にもともと入っている分だけ。ただし1つも付かなかったときは、
+      // 最後の行末に1個だけ足して、ゼロにはならないようにする
+      if (/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}♪]/u.test(text)) return text;
+      var ls = text.split("\n");
+      for (var i = ls.length - 1; i >= 0; i--) { if (ls[i]) { ls[i] += pickMark(); break; } }
+      return ls.join("\n");
+    }
     if (mode === "many") {
-      var marks = ["✨", "💕", "🌸", "♪"];
       var lines = text.split("\n");
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -395,11 +413,11 @@
         var segs = line.split("。");
         for (var j = 0; j < segs.length - 1; j++) {
           segs[j] += "。";
-          if (added < 1 && segs[j].length > 6 && Math.random() < 0.5) { segs[j] += pick(marks); added++; }
+          if (added < 1 && segs[j].length > 6 && Math.random() < 0.5) { segs[j] += pickMark(); added++; }
         }
         line = segs.join("");
         // 行末に絵文字がなければ、必ず1個足す
-        if (!/[✨💕🌸♪☀️🍁⛄☔]$/.test(line)) { line += pick(marks); added++; }
+        if (!/[✨💕🌸♪☀️🍁⛄☔💖💗🥰🌷🍀☕🫧🎀⭐](?:\u{FE0F})?$/u.test(line)) { line += pickMark(); added++; }
         lines[i] = line;
       }
       return lines.join("\n");
@@ -456,13 +474,26 @@
     else if (genre === "beauty") { mainPool = PATTERNS.beauty; }
 
     var lines = [];
-    lines.push(pickFor(greetingPool, name));
+    // メイン行を先に引く。メイン行自体が挨拶・自己紹介で始まる場合は、それが冒頭の挨拶になる
+    // （冒頭の挨拶行に続けて挨拶みたいな文が重ならないようにするため。例：「久しぶり」の
+    // 「お久しぶりです、○○です。」は、そのまま冒頭に置いて挨拶行は入れない）
+    var mainLine = null, mainIsOpening = false;
+    if (mainPool) {
+      mainLine = pickFor(mainPool, name);
+      if (/^(お久しぶりです|おはようございます|こんにちは|こんばんは|ご無沙汰)/.test(mainLine)) mainIsOpening = true;
+      else if (name) {
+        var escName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (new RegExp("^[^。]{1,16}、" + escName + "です。").test(mainLine)) mainIsOpening = true;
+      }
+    }
+    if (mainIsOpening) lines.push(mainLine);
+    else lines.push(pickFor(greetingPool, name));
     if (!short && withMood) lines.push(pickFor(moodPool, name));
     var st = fmtTime(el("startTime").value), en = fmtTime(el("endTime").value);
     if (st && en && (genre === "work" || genre === "waiting" || genre === "vacancy" || genre === "before")) {
       lines.push(st + "から" + en + "まで出勤してます♪");
     }
-    if (mainPool) lines.push(pickFor(mainPool, name));
+    if (mainPool && !mainIsOpening) lines.push(mainLine);
 
     // 次回予定：日付が選ばれていれば、その日付の行を入れる
     if (genre === "next") {
@@ -503,6 +534,10 @@
         // 気分行のないジャンル（退勤・お礼・次回予定）は追加行をもう1行足して、長さを他ジャンルと揃える
         if (!withMood) lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
       }
+    }
+    // 冒頭の挨拶行を省いた分は、行数を揃えるために追加行を1つ足す
+    if (mainIsOpening) {
+      lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, lines.slice()));
     }
     // 締め：夜のとき以外は夜系（おやすみ・良い夢など）を出さない。
     // タグ（nightClosings）に加えてキーワードでも判定する（熟女の締めはタグ付けされていないため）
@@ -673,7 +708,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "4.06";
+  var APP_VER = "4.11";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
