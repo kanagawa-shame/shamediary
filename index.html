@@ -40,21 +40,18 @@
     font-size: 14px; cursor: pointer; font-family: inherit; padding: 10px 8px;
   }
   .style-row button.on { background: #d6336c; color: #fff; font-weight: bold; }
-  details { background: #fff; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
-  details summary { min-height: 52px; display: flex; align-items: center; padding: 8px 16px; font-size: 14px; font-weight: bold; color: #b03060; cursor: pointer; list-style: none; }
-  details .dbody { padding: 0 16px 16px; font-size: 14px; line-height: 1.7; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
   .chip { min-height: 44px; border: none; background: #ffe3ec; color: #c2255c; border-radius: 999px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; }
   .chip.on { background: #d6336c; color: #fff; font-weight: bold; }
   .mini-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 10px 0 0; }
-  select.rsel { width: 100%; height: 46px; padding: 0 10px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; margin: 6px 0 14px; }
+  .mini-label small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
   .time-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 14px; }
   .time-row input { flex: 1; height: 46px; padding: 0 10px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; }
   .time-row .tilde { color: #8a5a6c; font-weight: bold; }
   .time-row .tlabel { font-size: 12px; color: #8a5a6c; }
-  .checks { margin-top: 6px; }
-  .checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #4a3540; margin: 10px 0; cursor: pointer; }
-  .checks input[type="checkbox"] { width: 18px; height: 18px; accent-color: #d6336c; flex: none; }
+  .date-row { display: none; margin: 0 0 16px; }
+  .date-row > input { width: 100%; height: 46px; padding: 0 10px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; background: #fff; color: #4a3540; font-family: inherit; margin-top: 6px; }
+  .auto-note { font-size: 12px; color: #8a5a6c; background: #fff; border: 1px dashed #f3c6d3; border-radius: 10px; padding: 10px 12px; line-height: 1.7; margin-bottom: 16px; }
   .result { display: none; background: #fff; border-radius: 16px; padding: 18px 16px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
   .sec-title { font-size: 14px; font-weight: bold; color: #b03060; margin-bottom: 10px; }
   label.rl { display: block; font-size: 14px; font-weight: bold; color: #b03060; margin: 12px 0 8px; }
@@ -84,7 +81,7 @@
 </head>
 <body>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver3.26</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.00</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -103,14 +100,34 @@
   <p class="sec">ジャンル <small>（選ぶだけ。作るのは下のボタンで）</small></p>
   <div class="tiles" id="genreChips">
     <button type="button" class="tile on" data-v="work">出勤中</button>
+    <button type="button" class="tile" data-v="waiting">待機中</button>
     <button type="button" class="tile" data-v="vacancy">空き枠</button>
     <button type="button" class="tile" data-v="before">出勤前</button>
+    <button type="button" class="tile" data-v="after">退勤</button>
     <button type="button" class="tile" data-v="thanks">お礼</button>
     <button type="button" class="tile" data-v="comeback">久しぶり</button>
-    <button type="button" class="tile" data-v="after">退勤後</button>
+    <button type="button" class="tile" data-v="event">イベント</button>
+    <button type="button" class="tile" data-v="change">出勤変更</button>
+    <button type="button" class="tile" data-v="next">次回予定</button>
     <button type="button" class="tile" data-v="food">ごはん・カフェ</button>
     <button type="button" class="tile" data-v="beauty">美容・ファッション</button>
-    <button type="button" class="tile" data-v="next">次回予定</button>
+  </div>
+
+  <div class="date-row" id="nextDateRow">
+    <p class="mini-label">次回の出勤日 <small>（選ぶと「○月○日（○）」の形で文に入ります。空欄でも作れます）</small></p>
+    <input type="date" id="nextDate">
+  </div>
+
+  <div class="date-row" id="changeDateRow">
+    <p class="mini-label">変更後の出勤日時 <small>（選ぶと文に入ります。日付だけ・時間だけでもOK、空欄でも作れます）</small></p>
+    <input type="date" id="changeDate">
+    <div class="time-row">
+      <span class="tlabel">開始</span>
+      <input type="time" id="changeStart">
+      <span class="tilde">〜</span>
+      <span class="tlabel">終了</span>
+      <input type="time" id="changeEnd">
+    </div>
   </div>
 
   <p class="sec">文体</p>
@@ -119,71 +136,33 @@
     <button type="button" data-v="cute">かわいい系</button>
   </div>
 
-  <details>
-    <summary>お好み（任意）▸ 出勤時間・話題・時間帯・気分・天気など</summary>
-    <div class="dbody">
-      <p style="font-size:12px;color:#8a5a6c;margin:4px 0 0;">※お好みの選択は保存されません（履歴に残らず、毎回その場だけの設定です）</p>
-      <p class="mini-label">出勤時間</p>
-      <div class="time-row">
-        <span class="tlabel">開始</span>
-        <input type="time" id="startTime">
-        <span class="tilde">〜</span>
-        <span class="tlabel">終了</span>
-        <input type="time" id="endTime">
-      </div>
-      <p class="mini-label">話題</p>
-      <select class="rsel" id="topic"></select>
-      <p class="mini-label">時間帯</p>
-      <div class="chips" id="timeChips">
-        <button type="button" class="chip" data-v="朝">朝</button>
-        <button type="button" class="chip on" data-v="昼">昼</button>
-        <button type="button" class="chip" data-v="夕方">夕方</button>
-        <button type="button" class="chip" data-v="夜">夜</button>
-      </div>
-      <p class="mini-label">今日の気分</p>
-      <div class="chips" id="moodChips">
-        <button type="button" class="chip on" data-v="元気">元気</button>
-        <button type="button" class="chip" data-v="まったり">まったり</button>
-        <button type="button" class="chip" data-v="甘えたい">甘えたい</button>
-        <button type="button" class="chip" data-v="大人っぽい">大人っぽい</button>
-      </div>
-      <p class="mini-label">天気</p>
-      <select class="rsel" id="weather">
-        <option value="" selected>なし</option>
-        <option>晴れ</option>
-        <option>雨</option>
-        <option>曇り</option>
-        <option>雪</option>
-      </select>
-      <p class="mini-label">アピール</p>
-      <select class="rsel" id="appeal">
-        <option selected>出勤中</option>
-        <option>予約受付中</option>
-        <option>残りわずか</option>
-        <option>退勤</option>
-        <option>イベント</option>
-        <option>出勤変更</option>
-        <option>待機中</option>
-      </select>
-      <p class="mini-label">文章の長さ</p>
-      <div class="chips" id="lengthChips">
-        <button type="button" class="chip" data-v="short">短め</button>
-        <button type="button" class="chip on" data-v="normal">ふつう</button>
-        <button type="button" class="chip" data-v="long">長め</button>
-      </div>
-      <p class="mini-label">絵文字の量</p>
-      <div class="chips" id="emojiChips">
-        <button type="button" class="chip" data-v="none">なし</button>
-        <button type="button" class="chip on" data-v="some">控えめ</button>
-        <button type="button" class="chip" data-v="many">多め</button>
-      </div>
-      <div class="checks">
-        <label><input type="checkbox" id="useSeason"> 季節（秋・冬）の話題を追加する</label>
-        <label><input type="checkbox" id="useDaily"> 日常の小ネタを追加する</label>
-        <label><input type="checkbox" id="useCare"> 体調・気遣いの一言を追加する</label>
-      </div>
-    </div>
-  </details>
+  <p class="mini-label">出勤時間</p>
+  <div class="time-row">
+    <span class="tlabel">開始</span>
+    <input type="time" id="startTime">
+    <span class="tilde">〜</span>
+    <span class="tlabel">終了</span>
+    <input type="time" id="endTime">
+  </div>
+
+  <p class="mini-label">文章の長さ</p>
+  <div class="chips" id="lengthChips">
+    <button type="button" class="chip" data-v="short">短め</button>
+    <button type="button" class="chip on" data-v="normal">ふつう</button>
+    <button type="button" class="chip" data-v="long">長め</button>
+  </div>
+
+  <p class="mini-label">絵文字の量</p>
+  <div class="chips" id="emojiChips">
+    <button type="button" class="chip" data-v="none">なし</button>
+    <button type="button" class="chip on" data-v="some">控えめ</button>
+    <button type="button" class="chip" data-v="many">多め</button>
+  </div>
+
+  <div class="auto-note">
+    時間帯は、今の時刻に合わせて自動で選びます（朝・昼・夕方・夜）。<br>
+    気分や話題の文は、ジャンルに合わせて自動で入ります。
+  </div>
 
   <div class="result" id="resultCard">
     <div class="sec-title">完成（そのまま編集できます）</div>
@@ -218,10 +197,10 @@
   </div>
 </div>
 
-<script src="patterns.js?v=3.26"></script>
+<script src="patterns.js?v=4.00"></script>
 <script>
 (function () {
-  // 端末に保存するのは名前・ジャンル・文体だけ（お好みの選択は保存しない）
+  // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
   var store = {
     get: function (k) { try { return localStorage.getItem("shamediary." + k); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem("shamediary." + k, v); } catch (e) {} }
@@ -231,27 +210,16 @@
   var results = [];
   var pos = -1;
 
-  var GENRE_LABELS = { work: "出勤中", vacancy: "空き枠", before: "出勤前", thanks: "お礼", comeback: "久しぶり", after: "退勤後", food: "ごはん・カフェ", beauty: "美容・ファッション", next: "次回予定" };
+  var GENRE_LABELS = { work: "出勤中", waiting: "待機中", vacancy: "空き枠", before: "出勤前", after: "退勤", thanks: "お礼", comeback: "久しぶり", event: "イベント", change: "出勤変更", next: "次回予定", food: "ごはん・カフェ", beauty: "美容・ファッション" };
   var STYLE_LABELS = { adult: "しっとり・大人系", cute: "かわいい系" };
   function updateLastBox() {
     el("lastSettings").textContent = (GENRE_LABELS[genre] || genre) + "／" + (STYLE_LABELS[style] || style);
   }
-
-  var TOPICS = {
-    work:    [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    vacancy: [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    before:  [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    thanks:  [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    comeback:[["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    after:   [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    next:    [["auto", "おまかせ"], ["season", "季節の話題"], ["daily", "日常の小ネタ"]],
-    food:    [["auto", "おまかせ"], ["lunch", "ランチ"], ["cafe", "カフェ・甘いもの"], ["daily", "日常の小ネタ"]],
-    beauty:  [["auto", "おまかせ"], ["hair", "ヘア・ネイル"], ["makeup", "メイク・香り"], ["daily", "日常の小ネタ"]]
-  };
-  var TOPIC_POOLS = {
-    season: "season_autumn_winter", daily: "daily",
-    lunch: "topicLunch", cafe: "topicCafe", hair: "topicHair", makeup: "topicMakeup"
-  };
+  // ジャンルに応じて日付・日時欄の表示を切り替える
+  function updateDateRows() {
+    el("nextDateRow").style.display = genre === "next" ? "block" : "none";
+    el("changeDateRow").style.display = genre === "change" ? "block" : "none";
+  }
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function fill(text, name) { return text.split("{name}").join(name); }
@@ -275,11 +243,19 @@
     while (t.charAt(0) === "！" || t.charAt(0) === "、" || t.charAt(0) === " ") t = t.slice(1);
     return t;
   }
+  // 時間帯は今の時刻から自動判定する（朝5〜11時／昼11〜16時／夕方16〜19時／夜19〜5時）
+  function autoSlot() {
+    var h = new Date().getHours();
+    if (h >= 5 && h < 11) return "朝";
+    if (h >= 11 && h < 16) return "昼";
+    if (h >= 16 && h < 19) return "夕方";
+    return "夜";
+  }
   var currentSlot = "昼";
   // 重複防止：直近3回分の生成で使った文を覚えて、続けて同じ文が出ないようにする（ページを開いている間だけ有効）
   var recentGens = [];
   var genUsed = null;
-  // 時間帯に合わない本文行を抽選から外す（patterns.js のタグ方式）
+  // 時間帯に合わない本文行を抽選から外す（patterns.js のタグ方式＋キーワード判定）
   function timeFilter(pool, slot) {
     if (!pool || !PATTERNS.nightLines) return pool;
     var ban = [];
@@ -287,9 +263,22 @@
     else if (slot === "昼") ban = PATTERNS.nightLines;
     else if (slot === "夕方") ban = PATTERNS.morningLines || [];
     else if (slot === "夜") ban = (PATTERNS.morningLines || []).concat(PATTERNS.noonLines || []);
-    if (!ban.length) return pool;
-    var f = pool.filter(function (t) { return ban.indexOf(t) === -1; });
-    return f.length ? f : pool;
+    var f = pool;
+    if (ban.length) {
+      f = pool.filter(function (t) { return ban.indexOf(t) === -1; });
+      if (!f.length) f = pool;
+    }
+    // 夜以外は、就寝の挨拶（おやすみ・良い夢・お休みください）を含む文も外す
+    if (slot !== "夜") {
+      var f2 = f.filter(function (t) { return !/おやすみ|良い夢|お休みください/.test(t); });
+      if (f2.length) f = f2;
+    }
+    // 朝・昼は「今夜」の案内文も外す（バッチ追加でタグ付けされていない文への対策）
+    if (slot === "朝" || slot === "昼") {
+      var f3 = f.filter(function (t) { return !/今夜/.test(t); });
+      if (f3.length) f = f3;
+    }
+    return f;
   }
 
   function pickFor(pool, name) {
@@ -308,7 +297,7 @@
     if (genUsed) genUsed.push(out);
     return out;
   }
-  // すでに使った行と重ならないように引く（長めモードの追加行用）
+  // すでに使った行と重ならないように引く（追加行用）
   function pickFresh(pool, name, used) {
     var t = pickFor(pool, name), tries = 0;
     while (used.indexOf(t) !== -1 && tries < 8) { t = pickFor(pool, name); tries++; }
@@ -338,29 +327,15 @@
     genre = v;
     store.set("genre", v);
     updateLastBox();
-    buildTopics();
+    updateDateRows();
   });
   var getStyle = setupChips("styleChips", style, function (v) {
     style = v;
     store.set("style", v);
     updateLastBox();
   });
-  var getTimeSlot = setupChips("timeChips", "昼", function () {});
-  var getMood = setupChips("moodChips", "元気", function () {});
   var getLength = setupChips("lengthChips", "normal", function () {});
   var getEmoji = setupChips("emojiChips", "some", function () {});
-
-  function buildTopics() {
-    var sel = el("topic");
-    sel.innerHTML = "";
-    TOPICS[genre].forEach(function (t) {
-      var o = document.createElement("option");
-      o.value = t[0];
-      o.textContent = t[1];
-      sel.appendChild(o);
-    });
-  }
-  buildTopics();
 
   function fmtTime(v) {
     if (!v) return "";
@@ -368,6 +343,14 @@
     var h = parseInt(p[0], 10);
     var m = parseInt(p[1], 10);
     return m === 0 ? (h + "時") : (h + "時" + m + "分");
+  }
+  var WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+  function fmtDate(v) {
+    if (!v) return "";
+    var p = v.split("-");
+    if (p.length !== 3) return "";
+    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    return parseInt(p[1], 10) + "月" + parseInt(p[2], 10) + "日（" + WEEKDAYS[d.getDay()] + "）";
   }
 
   function applyEmoji(text, mode) {
@@ -401,18 +384,11 @@
     genre = getGenre();
     style = getStyle();
     var name = el("name").value.trim();
-    var timeSlot = getTimeSlot();
+    var timeSlot = autoSlot();
     currentSlot = timeSlot;
     genUsed = [];
-    var mood = getMood();
-    var weather = el("weather").value;
-    var appeal = el("appeal").value;
     var lengthMode = getLength();
     var emojiMode = getEmoji();
-    var topic = el("topic").value;
-    var useSeason = el("useSeason").checked;
-    var useDaily = el("useDaily").checked;
-    var useCare = el("useCare").checked;
     var short = lengthMode === "short";
     var long = lengthMode === "long";
 
@@ -423,66 +399,92 @@
       closingPool = PATTERNS.mature.closings;
     } else {
       greetingPool = PATTERNS.greetings[timeSlot];
-      moodPool = PATTERNS.moods[mood];
+      // 気分は選ばず、全プールからランダムに引く
+      moodPool = [];
+      for (var mk in PATTERNS.moods) moodPool = moodPool.concat(PATTERNS.moods[mk]);
       closingPool = PATTERNS.closings;
     }
 
-    var mainPool = null, withMood = true, withAppeal = false;
-    if (genre === "work") { withAppeal = true; }
-    else if (genre === "vacancy") { mainPool = PATTERNS.vacancy; }
+    // ジャンルごとの本文プール（旧アピールのプールはジャンル側へ吸収済み）
+    var mainPool = null, withMood = true;
+    if (genre === "work") { mainPool = PATTERNS.appeals["出勤中"].concat(PATTERNS.appeals["予約受付中"]); }
+    else if (genre === "waiting") { mainPool = PATTERNS.appeals["待機中"]; }
+    else if (genre === "vacancy") { mainPool = PATTERNS.vacancy.concat(PATTERNS.appeals["残りわずか"]); }
     else if (genre === "before") { mainPool = PATTERNS.beforeWork; }
+    else if (genre === "after") { mainPool = PATTERNS.appeals["退勤"].concat(PATTERNS.afterWork); withMood = false; }
     else if (genre === "thanks") { mainPool = PATTERNS.thanks; withMood = false; }
-    else if (genre === "comeback") { mainPool = PATTERNS.returns; withAppeal = true; }
-    else if (genre === "after") { mainPool = PATTERNS.afterWork; withMood = false; }
+    else if (genre === "comeback") { mainPool = PATTERNS.returns; }
+    else if (genre === "event") { mainPool = PATTERNS.appeals["イベント"]; }
+    else if (genre === "change") { mainPool = PATTERNS.appeals["出勤変更"]; }
+    else if (genre === "next") { mainPool = PATTERNS.previews; withMood = false; }
     else if (genre === "food") { mainPool = PATTERNS.food; }
     else if (genre === "beauty") { mainPool = PATTERNS.beauty; }
-    else if (genre === "next") { mainPool = PATTERNS.previews; withMood = false; }
 
     var lines = [];
     lines.push(pickFor(greetingPool, name));
-    if (!short) {
-      if (withMood) lines.push(pickFor(moodPool, name));
-      if (weather) lines.push(pickFor(PATTERNS.weather[weather], name));
-    }
+    if (!short && withMood) lines.push(pickFor(moodPool, name));
     var st = fmtTime(el("startTime").value), en = fmtTime(el("endTime").value);
-    if (st && en && (genre === "work" || genre === "vacancy" || genre === "before")) {
+    if (st && en && (genre === "work" || genre === "waiting" || genre === "vacancy" || genre === "before")) {
       lines.push(st + "から" + en + "まで出勤してます♪");
     }
     if (mainPool) lines.push(pickFor(mainPool, name));
-    if (withAppeal && !(short && mainPool)) lines.push(pickFor(PATTERNS.appeals[appeal], name));
+
+    // 次回予定：日付が選ばれていれば、その日付の行を入れる
+    if (genre === "next") {
+      var nd = fmtDate(el("nextDate").value);
+      if (nd) lines.push("次回は" + nd + "に出勤予定です♪");
+    }
+    // 出勤変更：日付・時間が選ばれていれば、変更後の日時の行を入れる
+    if (genre === "change") {
+      var cd = fmtDate(el("changeDate").value);
+      var cs = fmtTime(el("changeStart").value), ce = fmtTime(el("changeEnd").value);
+      var changeLine = "";
+      if (cd && cs && ce) changeLine = cd + "は" + cs + "から" + ce + "までの出勤に変更になりました";
+      else if (cd) changeLine = cd + "の出勤に変更になりました";
+      else if (cs && ce) changeLine = cs + "から" + ce + "までの出勤に変更になりました";
+      if (changeLine) lines.push(changeLine);
+    }
 
     if (!short) {
-      if (topic !== "auto" && TOPIC_POOLS[topic]) {
-        lines.push(pickFor(PATTERNS[TOPIC_POOLS[topic]], name));
-        if (topic === "season") useSeason = false;
-        if (topic === "daily") useDaily = false;
-      }
-      if (useSeason) lines.push(pickFor(PATTERNS.season_autumn_winter, name));
-      if (useDaily) lines.push(pickFor(PATTERNS.daily, name));
-      if (useCare) lines.push(pickFor(PATTERNS.care, name));
-    }
-    if (long) {
       var used = lines.slice();
-      lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
-      lines.push(pickFresh(PATTERNS.daily, name, used));
-      lines.push(pickFresh(moodPool, name, used));
-      lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
-      lines.push(pickFresh(PATTERNS.daily, name, used));
-      lines.push(pickFresh(PATTERNS.care, name, used));
-      if (topic !== "auto" && TOPIC_POOLS[topic]) lines.push(pickFresh(PATTERNS[TOPIC_POOLS[topic]], name, used));
+      if (long) {
+        // 長め：季節・日常・気分・ケアの文を多めに足す
+        lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
+        lines.push(pickFresh(PATTERNS.daily, name, used));
+        if (withMood) lines.push(pickFresh(moodPool, name, used));
+        lines.push(pickFresh(PATTERNS.season_autumn_winter, name, used));
+        lines.push(pickFresh(PATTERNS.daily, name, used));
+        lines.push(pickFresh(PATTERNS.care, name, used));
+        if (genre === "food") lines.push(pickFresh(pick([PATTERNS.topicLunch, PATTERNS.topicCafe]), name, used));
+        if (genre === "beauty") lines.push(pickFresh(pick([PATTERNS.topicHair, PATTERNS.topicMakeup]), name, used));
+      } else {
+        // ふつう：ジャンルに合った話題・季節・日常・ケアから自動で1〜2行足す
+        if (genre === "food") lines.push(pickFresh(pick([PATTERNS.topicLunch, PATTERNS.topicCafe]), name, used));
+        else if (genre === "beauty") lines.push(pickFresh(pick([PATTERNS.topicHair, PATTERNS.topicMakeup]), name, used));
+        lines.push(pickFresh(pick([PATTERNS.season_autumn_winter, PATTERNS.daily, PATTERNS.care]), name, used));
+      }
     }
-    // 締め：朝・昼のときは夜系（おやすみ・良い夢など）を出さない
+    // 締め：夜のとき以外は夜系（おやすみ・良い夢など）を出さない。
+    // タグ（nightClosings）に加えてキーワードでも判定する（熟女の締めはタグ付けされていないため）
     var closingUse = closingPool;
-    if ((timeSlot === "朝" || timeSlot === "昼") && PATTERNS.nightClosings) {
-      closingUse = closingPool.filter(function (t) { return PATTERNS.nightClosings.indexOf(t) === -1; });
+    if (timeSlot !== "夜") {
+      closingUse = closingPool.filter(function (t) {
+        if (PATTERNS.nightClosings && PATTERNS.nightClosings.indexOf(t) !== -1) return false;
+        if (/おやすみ|良い夢|お休みください/.test(t)) return false;
+        return true;
+      });
       if (!closingUse.length) closingUse = closingPool;
     }
     lines.push(pickFor(closingUse, name));
 
-    // タイトル：夜・深夜系は時間帯「夜」のときだけ出す
+    // タイトル：夜・深夜系は時間帯「夜」のときだけ出す（タグ＋キーワード判定）
     var titlePool = PATTERNS.titles;
-    if (timeSlot !== "夜" && PATTERNS.nightTitles) {
-      titlePool = titlePool.filter(function (t) { return PATTERNS.nightTitles.indexOf(t) === -1; });
+    if (timeSlot !== "夜") {
+      titlePool = titlePool.filter(function (t) {
+        if (PATTERNS.nightTitles && PATTERNS.nightTitles.indexOf(t) !== -1) return false;
+        if (/今夜|深夜|夜更かし/.test(t)) return false;
+        return true;
+      });
     }
     // タイトル：夕方・夜系は「夕方・夜」のときだけ、朝系は「朝・昼」のときだけ出す
     if (timeSlot !== "夕方" && timeSlot !== "夜" && PATTERNS.duskTitles) {
@@ -574,6 +576,7 @@
   });
   syncNameSaved();
   updateLastBox();
+  updateDateRows();
 
   el("generateBtn").addEventListener("click", generate);
   el("quickGenBtn").addEventListener("click", generate);
