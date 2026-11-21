@@ -96,7 +96,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver4.13</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver4.22</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -217,7 +217,7 @@
   </div>
 </div>
 
-<script src="patterns.js?v=4.13"></script>
+<script src="patterns.js?v=4.22"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -310,8 +310,8 @@
 
   // 文脈フィルタ：「復帰・久しぶり」系と「初めて・新人」系の文は、同じ日記に混ぜない
   // （例：タイトル「長いお休みをいただいていました」と本文「初めての出勤は緊張しました」が一緒になると不自然なため）
-  var CTX_BACK = /お久しぶり|長いお休み|久しぶりの出勤|お休みをいただいていました/;
-  var CTX_DEBUT = /初めての出勤|初出勤|入店したばかり|デビュー/;
+  var CTX_BACK = /お久しぶり|長いお休み|久しぶりの出勤|お休みをいただいていました|お休み明け/;
+  var CTX_DEBUT = /初めての出勤|初出勤|入店したばかり|デビュー|出勤[0-9０-９]+日目/;
   var genBan = null;    // 今の生成で避ける側（CTX_BACK か CTX_DEBUT）
   var curBodyText = ""; // 直近に作った本文（タイトル側の文脈判定に使う）
   function ctxFilter(pool) {
@@ -777,7 +777,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "4.13";
+  var APP_VER = "4.22";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
