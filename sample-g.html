@@ -142,7 +142,7 @@
         <p class="hint">背景が透明な画像（透過PNG）がいちばんきれいに貼れます。取り込んだスタンプはこの端末の中に保存されるので、次回もそのまま使えます（外部には送られません）。</p>
         <p class="tool-label">スタンプの大きさ</p>
         <input type="range" id="stampSize" min="8" max="30" value="16">
-        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとも、大きさ（上のスライダー）と場所（ドラッグ）を直せます。決まったら ○ ボタン、やめるときは ✕ ボタンを押してください。</p>
+        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとは、場所はドラッグ、大きさはスライダーか、スタンプを2本指で広げる・つまむ（ピンチ）で直せます。決まったら ○ ボタン、やめるときは ✕ ボタンを押してください。</p>
         <div class="okx-row" id="stampActions" style="display:none">
           <button type="button" class="okx" id="stampCancelBtn">✕</button>
           <button type="button" class="okx ok" id="stampOkBtn">○</button>
@@ -433,21 +433,46 @@
     pendingEl.classList.remove("show");
     stampActions.style.display = "none";
   }
-  var placedDrag = false;
+  // ドラッグで移動、2本指のピンチ（広げる・つまむ）で大きさ変更
+  var pPointers = new Map();
+  var pinchStart = null; // {dist, size}
   pendingEl.addEventListener("pointerdown", function (e) {
     e.preventDefault();
-    placedDrag = true;
     try { pendingEl.setPointerCapture(e.pointerId); } catch (err) {}
+    pPointers.set(e.pointerId, framePos(e));
+    if (pPointers.size === 2) {
+      var pts = Array.from(pPointers.values());
+      pinchStart = {
+        dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
+        size: parseFloat(stampSize.value)
+      };
+    }
   });
   pendingEl.addEventListener("pointermove", function (e) {
-    if (!placedDrag || !placed) return;
+    if (!placed || !pPointers.has(e.pointerId)) return;
     var p = framePos(e);
-    placed.x = p.x; placed.y = p.y;
-    pendingEl.style.left = placed.x + "px";
-    pendingEl.style.top = placed.y + "px";
+    pPointers.set(e.pointerId, p);
+    if (pinchStart && pPointers.size === 2) {
+      var pts = Array.from(pPointers.values());
+      var d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (pinchStart.dist > 0) {
+        var v = pinchStart.size * (d / pinchStart.dist);
+        stampSize.value = Math.max(8, Math.min(30, Math.round(v)));
+        placed.x = (pts[0].x + pts[1].x) / 2;
+        placed.y = (pts[0].y + pts[1].y) / 2;
+        refreshPendingEl();
+      }
+    } else if (pPointers.size === 1) {
+      placed.x = p.x; placed.y = p.y;
+      pendingEl.style.left = placed.x + "px";
+      pendingEl.style.top = placed.y + "px";
+    }
   });
   ["pointerup", "pointercancel"].forEach(function (ev) {
-    pendingEl.addEventListener(ev, function () { placedDrag = false; });
+    pendingEl.addEventListener(ev, function (e) {
+      pPointers.delete(e.pointerId);
+      if (pPointers.size < 2) pinchStart = null;
+    });
   });
   stampSize.addEventListener("input", function () { if (placed) refreshPendingEl(); });
   document.getElementById("stampOkBtn").addEventListener("click", function () {
