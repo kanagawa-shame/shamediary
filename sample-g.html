@@ -111,10 +111,8 @@
         <button type="button" class="chip" id="blurChip">🌫 ぼかし</button>
         <button type="button" class="chip" id="stampChip">💗 スタンプ</button>
         <button type="button" class="chip" id="cropChip">✂️ トリミング</button>
-        <button type="button" class="chip" id="rotLChip">⟲ 左に回転</button>
-        <button type="button" class="chip" id="rotRChip">⟳ 右に回転</button>
+        <button type="button" class="chip" id="rotChip">⟳ 回転</button>
         <button type="button" class="chip" id="flipHChip">⇋ 左右反転</button>
-        <button type="button" class="chip" id="flipVChip">⇵ 上下反転</button>
       </div>
 
       <div class="panel" id="blurPanel">
@@ -328,11 +326,10 @@
     bctx.restore();
     render();
   }
-  document.getElementById("rotLChip").addEventListener("click", function () { rotate(-1); });
-  document.getElementById("rotRChip").addEventListener("click", function () { rotate(1); });
+  document.getElementById("rotChip").addEventListener("click", function () { rotate(1); });
 
-  // ===== 反転 =====
-  function flip(horizontal) {
+  // ===== 反転（左右のみ） =====
+  function flip() {
     if (!hasPhoto) return;
     invalidateReposition();
     clearPlaced();
@@ -342,14 +339,13 @@
     src.getContext("2d").drawImage(base, 0, 0);
     var bctx = base.getContext("2d");
     bctx.save();
-    if (horizontal) { bctx.translate(base.width, 0); bctx.scale(-1, 1); }
-    else { bctx.translate(0, base.height); bctx.scale(1, -1); }
+    bctx.translate(base.width, 0);
+    bctx.scale(-1, 1);
     bctx.drawImage(src, 0, 0);
     bctx.restore();
     render();
   }
-  document.getElementById("flipHChip").addEventListener("click", function () { flip(true); });
-  document.getElementById("flipVChip").addEventListener("click", function () { flip(false); });
+  document.getElementById("flipHChip").addEventListener("click", function () { flip(); });
 
   // ===== キャンバス上の操作（ぼかし／スタンプ） =====
   function canvasPos(e) {
