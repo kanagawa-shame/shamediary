@@ -85,7 +85,7 @@
     <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
     <p class="foot">このメーカーは毎日新しいフレーズを追加しています♪<br>表示が古いときは、再読み込み（リロード）してから使ってください</p>
     <p class="foot"><a href="#">💡 改善・要望はこちら</a></p>
-    <button type="button" class="photo-open" id="openPhotoBtn">📷 写真を整える<small>位置情報を消す・ぼかし・スタンプ・明るさ</small></button>
+    <button type="button" class="photo-open" id="openPhotoBtn">写真を整える<small>位置情報を消す・ぼかし・スタンプ・明るさ</small></button>
   </div>
 
   <!-- ===== 写真編集画面 ===== -->
@@ -111,9 +111,9 @@
 
       <p class="tool-label">道具</p>
       <div class="tool-btns">
-        <button type="button" class="tool-btn" id="blurChip">🌫 ぼかし</button>
-        <button type="button" class="tool-btn" id="stampChip">💗 スタンプ</button>
-        <button type="button" class="tool-btn" id="cropChip">✂️ トリミング</button>
+        <button type="button" class="tool-btn" id="blurChip">ぼかし</button>
+        <button type="button" class="tool-btn" id="stampChip">スタンプ</button>
+        <button type="button" class="tool-btn" id="cropChip">トリミング</button>
       </div>
 
       <div class="panel" id="blurPanel">
@@ -129,7 +129,7 @@
         <div class="chips" id="customChips"></div>
         <div class="chips">
           <button type="button" class="chip" id="importStampBtn">＋ スタンプを取り込む</button>
-          <button type="button" class="chip" id="stampDeleteBtn" style="display:none">🗑 選んだスタンプを消す</button>
+          <button type="button" class="chip" id="stampDeleteBtn" style="display:none">選んだスタンプを消す</button>
         </div>
         <input type="file" id="stampInput" accept="image/*" style="display:none">
         <p class="hint">背景が透明な画像（透過PNG）がいちばんきれいに貼れます。取り込んだスタンプはこの端末の中に保存されるので、次回もそのまま使えます（外部には送られません）。</p>
@@ -146,7 +146,7 @@
           <button type="button" class="sub" data-nudge="-1,0">← 左へ</button>
           <button type="button" class="sub" data-nudge="1,0">→ 右へ</button>
         </div>
-        <button type="button" class="sub" id="stampRepositionBtn" style="display:none; width:100%; margin-top:10px">↩ さっきのスタンプの場所・大きさを直す</button>
+        <button type="button" class="sub" id="stampRepositionBtn" style="display:none; width:100%; margin-top:10px">さっきのスタンプの場所・大きさを直す</button>
       </div>
 
       <div class="panel" id="cropPanel">
@@ -160,7 +160,7 @@
         <p class="hint">枠をドラッグで動かして、四すみの丸をドラッグで大きさを変えます。</p>
         <div class="btn-row">
           <button type="button" class="sub" id="cropCancelBtn">やめる</button>
-          <button type="button" class="sub primary" id="cropApplyBtn">✂️ 切り取る</button>
+          <button type="button" class="sub primary" id="cropApplyBtn">切り取る</button>
         </div>
       </div>
 
@@ -168,8 +168,8 @@
       <input type="range" id="brightRange" min="60" max="140" value="100">
 
       <div class="btn-row">
-        <button type="button" class="sub" id="undoBtn" disabled>↩ もどす</button>
-        <button type="button" class="sub" id="resetBtn">🗑 はじめから</button>
+        <button type="button" class="sub" id="undoBtn" disabled>もどす</button>
+        <button type="button" class="sub" id="resetBtn">はじめから</button>
       </div>
 
       <button type="button" class="save" id="saveBtn" disabled>保存する（位置情報は消えます）</button>
