@@ -50,6 +50,9 @@
   .crop-handle.se { right: -14px; bottom: -14px; cursor: nwse-resize; }
   .tool-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 14px 0 6px; }
   .tool-label small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
+  .tool-btns { display: flex; gap: 8px; margin: 6px 0 4px; }
+  .tool-btn { flex: 1; min-height: 60px; font-size: 16px; font-weight: bold; border-radius: 14px; border: 2px solid #f3c6d3; background: #ffe3ec; color: #c2255c; cursor: pointer; font-family: inherit; }
+  .tool-btn.on { background: #d6336c; color: #fff; border-color: #d6336c; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
   .chip { min-height: 44px; border: none; background: #ffe3ec; color: #c2255c; border-radius: 999px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; }
   .chip.on { background: #d6336c; color: #fff; font-weight: bold; }
@@ -107,12 +110,10 @@
       </div>
 
       <p class="tool-label">道具</p>
-      <div class="chips">
-        <button type="button" class="chip" id="blurChip">🌫 ぼかし</button>
-        <button type="button" class="chip" id="stampChip">💗 スタンプ</button>
-        <button type="button" class="chip" id="cropChip">✂️ トリミング</button>
-        <button type="button" class="chip" id="rotChip">⟳ 回転</button>
-        <button type="button" class="chip" id="flipHChip">⇋ 左右反転</button>
+      <div class="tool-btns">
+        <button type="button" class="tool-btn" id="blurChip">🌫 ぼかし</button>
+        <button type="button" class="tool-btn" id="stampChip">💗 スタンプ</button>
+        <button type="button" class="tool-btn" id="cropChip">✂️ トリミング</button>
       </div>
 
       <div class="panel" id="blurPanel">
@@ -307,45 +308,6 @@
   modeChips.blur.addEventListener("click", function () { setMode("blur"); });
   modeChips.stamp.addEventListener("click", function () { setMode("stamp"); });
   modeChips.crop.addEventListener("click", function () { setMode("crop"); });
-
-  // ===== 回転 =====
-  function rotate(dir) {
-    if (!hasPhoto) return;
-    invalidateReposition();
-    clearPlaced();
-    pushUndo();
-    var src = document.createElement("canvas");
-    src.width = base.width; src.height = base.height;
-    src.getContext("2d").drawImage(base, 0, 0);
-    base.width = src.height; base.height = src.width;
-    var bctx = base.getContext("2d");
-    bctx.save();
-    if (dir > 0) { bctx.translate(base.width, 0); bctx.rotate(Math.PI / 2); }
-    else { bctx.translate(0, base.height); bctx.rotate(-Math.PI / 2); }
-    bctx.drawImage(src, 0, 0);
-    bctx.restore();
-    render();
-  }
-  document.getElementById("rotChip").addEventListener("click", function () { rotate(1); });
-
-  // ===== 反転（左右のみ） =====
-  function flip() {
-    if (!hasPhoto) return;
-    invalidateReposition();
-    clearPlaced();
-    pushUndo();
-    var src = document.createElement("canvas");
-    src.width = base.width; src.height = base.height;
-    src.getContext("2d").drawImage(base, 0, 0);
-    var bctx = base.getContext("2d");
-    bctx.save();
-    bctx.translate(base.width, 0);
-    bctx.scale(-1, 1);
-    bctx.drawImage(src, 0, 0);
-    bctx.restore();
-    render();
-  }
-  document.getElementById("flipHChip").addEventListener("click", function () { flip(); });
 
   // ===== キャンバス上の操作（ぼかし／スタンプ） =====
   function canvasPos(e) {
