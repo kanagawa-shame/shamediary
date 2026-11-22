@@ -56,6 +56,7 @@
   .sec-title { font-size: 14px; font-weight: bold; color: #b03060; margin-bottom: 10px; }
   label.rl { display: block; font-size: 14px; font-weight: bold; color: #b03060; margin: 12px 0 8px; }
   .count { font-size: 12px; color: #8a5a6c; font-weight: normal; }
+  .meter { font-size: 12px; color: #8a5a6c; margin: 6px 0 0; line-height: 1.6; }
   input.rin, textarea.rta { width: 100%; padding: 12px; border: 1.5px solid #f3c6d3; border-radius: 10px; font-size: 16px; line-height: 1.7; background: #fff; color: #4a3540; font-family: inherit; }
   textarea.rta { resize: vertical; }
   .btn-col { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
@@ -159,7 +160,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver5.00</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver5.10</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -248,6 +249,7 @@
     <input class="rin" type="text" id="titleText">
     <label class="rl" for="bodyText">本文 <span class="count" id="bodyCount"></span></label>
     <textarea class="rta" id="bodyText" rows="8"></textarea>
+    <p class="meter" id="meterLine"></p>
     <div class="btn-col">
       <button type="button" class="copy main" id="copyBoth">タイトル＋本文をコピー</button>
     </div>
@@ -357,6 +359,11 @@
         <button type="button" class="sub" id="peResetBtn">はじめから</button>
       </div>
 
+      <p class="tool-label">保存サイズ</p>
+      <div class="chips" id="peSaveSizeChips">
+        <button type="button" class="chip" data-s="orig">そのまま</button>
+        <button type="button" class="chip on" data-s="heaven">ヘブン用（1080×1920・10MB以下）</button>
+      </div>
       <button type="button" class="save" id="peSaveBtn" disabled>保存する（位置情報は消えます）</button>
       <p class="hint" style="margin-top:8px">スマホでは保存を押すと共有メニューが開きます。「画像を保存」を選ぶと写真アプリに入ります。PCではダウンロードフォルダに保存されます。</p>
     </div>
@@ -367,7 +374,7 @@
       📁 PCではダウンロードフォルダに保存されます。スマホで共有が使えないときもダウンロードになります。
     </p>
 
-<script src="patterns.js?v=5.00"></script>
+<script src="patterns.js?v=5.10"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -836,9 +843,18 @@
     showResult();
   }
 
+  // ジャンル別の本文の目安（ヒメポスト実測911本の中央値：出勤154／お礼249／日常142／告知201／全体181）
+  var MEDIAN = { work: 154, before: 154, thanks: 249, vacancy: 201, event: 201, change: 201, next: 201, food: 142, beauty: 142 };
+  var MEDIAN_LABEL = { work: "出勤", before: "出勤", thanks: "お礼", vacancy: "告知", event: "告知", change: "告知", next: "告知", food: "日常", beauty: "日常" };
   function updateCounts() {
+    var b = el("bodyText").value;
     el("titleCount").textContent = "（" + el("titleText").value.length + "文字）";
-    el("bodyCount").textContent = "（" + el("bodyText").value.length + "文字）";
+    var med = MEDIAN[genre] || 181;
+    var lab = MEDIAN_LABEL[genre] || "全体";
+    el("bodyCount").textContent = "（" + b.length + "文字／" + lab + "の目安 約" + med + "字）";
+    var em = (b.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/gu) || []).length;
+    var per = b.length ? Math.round(em * 1000 / b.length) / 10 : 0;
+    el("meterLine").textContent = "絵文字 " + em + "個（100字あたり約" + per + "個／標準は約5個）";
   }
 
   function showResult() {
@@ -927,7 +943,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "5.00";
+  var APP_VER = "5.10";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
@@ -1533,6 +1549,15 @@
     render();
   });
 
+  // ===== 保存サイズ（そのまま／ヘブン用） =====
+  var saveSize = "heaven";
+  document.getElementById("peSaveSizeChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-s]");
+    if (!b) return;
+    saveSize = b.getAttribute("data-s");
+    this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("on", c === b); });
+  });
+
   // ===== 保存（スマホ：共有シート／PC：ダウンロード） =====
   function flashSaveBtn(text) {
     saveBtn.textContent = text;
@@ -1555,13 +1580,22 @@
   saveBtn.addEventListener("click", function () {
     if (!hasPhoto) return;
     var out = document.createElement("canvas");
-    out.width = base.width; out.height = base.height;
+    var ow = base.width, oh = base.height;
+    if (saveSize === "heaven") {
+      var sc2 = Math.min(1, 1080 / ow, 1920 / oh);
+      ow = Math.max(1, Math.round(ow * sc2));
+      oh = Math.max(1, Math.round(oh * sc2));
+    }
+    out.width = ow; out.height = oh;
     var octx = out.getContext("2d");
     octx.filter = "brightness(" + (brightRange.value / 100) + ")";
-    octx.drawImage(base, 0, 0);
+    octx.drawImage(base, 0, 0, ow, oh);
     octx.filter = "none";
-    out.toBlob(function (blob) {
-      if (!blob) return;
+    var encodeQ = 0.92;
+    (function tryEncode() {
+      out.toBlob(function (blob) {
+        if (blob && saveSize === "heaven" && blob.size > 10 * 1024 * 1024 && encodeQ > 0.5) { encodeQ -= 0.08; tryEncode(); return; }
+        if (!blob) return;
       var now = new Date();
       function p2(n) { return (n < 10 ? "0" : "") + n; }
       var fname = "shame-photo-" + now.getFullYear() + p2(now.getMonth() + 1) + p2(now.getDate()) + "-" + p2(now.getHours()) + p2(now.getMinutes()) + ".jpg";
@@ -1581,7 +1615,8 @@
         }
       }
       downloadFallback(blob, fname);
-    }, "image/jpeg", 0.92);
+      }, "image/jpeg", encodeQ);
+    })();
   });
 })();
 </script>
