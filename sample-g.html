@@ -31,17 +31,31 @@
   button.pick:active { background: #d6336c; }
   .stage { display: none; margin-top: 14px; background: #fff; border-radius: 16px; padding: 12px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
   .stage.show { display: block; }
+  .cvwrap { position: relative; line-height: 0; }
   canvas#cv { width: 100%; height: auto; display: block; border-radius: 10px; background: #f7e8ec; touch-action: none; }
-  canvas#cv.mosaic { cursor: crosshair; outline: 2px dashed #e75480; outline-offset: -2px; }
+  canvas#cv.drawing { outline: 2px dashed #e75480; outline-offset: -2px; }
+  /* トリミング枠 */
+  .crop-frame { display: none; position: absolute; border: 2px solid #d6336c; box-shadow: 0 0 0 9999px rgba(40,10,20,.45); cursor: move; touch-action: none; z-index: 3; }
+  .crop-frame.show { display: block; }
+  .crop-handle { position: absolute; width: 26px; height: 26px; background: #d6336c; border: 2px solid #fff; border-radius: 50%; z-index: 4; }
+  .crop-handle.nw { left: -14px; top: -14px; cursor: nwse-resize; }
+  .crop-handle.ne { right: -14px; top: -14px; cursor: nesw-resize; }
+  .crop-handle.sw { left: -14px; bottom: -14px; cursor: nesw-resize; }
+  .crop-handle.se { right: -14px; bottom: -14px; cursor: nwse-resize; }
   .tool-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 14px 0 6px; }
   .tool-label small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
   .chip { min-height: 44px; border: none; background: #ffe3ec; color: #c2255c; border-radius: 999px; padding: 10px 15px; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; }
   .chip.on { background: #d6336c; color: #fff; font-weight: bold; }
+  .chip.emoji { font-size: 20px; padding: 8px 13px; }
+  .panel { display: none; }
+  .panel.show { display: block; }
+  .hint { font-size: 12px; color: #8a5a6c; margin: 4px 0 0; line-height: 1.6; }
   input[type="range"] { width: 100%; height: 40px; accent-color: #d6336c; }
   .btn-row { display: flex; gap: 8px; margin-top: 10px; }
   button.sub { flex: 1; min-height: 44px; padding: 10px 8px; font-size: 14px; font-weight: bold; border-radius: 999px; cursor: pointer; font-family: inherit; color: #b03060; background: #fff; border: 1.5px solid #f3c6d3; }
   button.sub:disabled { opacity: 0.4; cursor: default; }
+  button.sub.primary { background: #d6336c; color: #fff; border-color: #d6336c; }
   button.save {
     width: 100%; min-height: 54px; margin-top: 14px; font-size: 17px; font-weight: bold; color: #fff;
     background: #d6336c; border: none; border-radius: 12px; cursor: pointer; font-family: inherit;
@@ -62,7 +76,7 @@
     <p class="foot">お気に入りの文章ができたらコピーして使ってね♪</p>
     <p class="foot">このメーカーは毎日新しいフレーズを追加しています♪<br>表示が古いときは、再読み込み（リロード）してから使ってください</p>
     <p class="foot"><a href="#">💡 改善・要望はこちら</a></p>
-    <button type="button" class="photo-open" id="openPhotoBtn">📷 写真を整える<small>位置情報を消す・モザイク・明るさ</small></button>
+    <button type="button" class="photo-open" id="openPhotoBtn">📷 写真を整える<small>位置情報を消す・ぼかし・スタンプ・明るさ</small></button>
   </div>
 
   <!-- ===== 写真編集画面 ===== -->
@@ -73,11 +87,60 @@
     <input type="file" id="fileInput" accept="image/*" style="display:none">
 
     <div class="stage" id="stage">
-      <canvas id="cv" width="360" height="240"></canvas>
+      <div class="cvwrap" id="cvwrap">
+        <canvas id="cv" width="360" height="240"></canvas>
+        <div class="crop-frame" id="cropFrame">
+          <div class="crop-handle nw" data-h="nw"></div>
+          <div class="crop-handle ne" data-h="ne"></div>
+          <div class="crop-handle sw" data-h="sw"></div>
+          <div class="crop-handle se" data-h="se"></div>
+        </div>
+      </div>
 
-      <p class="tool-label">モザイク <small>（ONにして、隠したいところを指でなぞる）</small></p>
+      <p class="tool-label">道具</p>
       <div class="chips">
-        <button type="button" class="chip" id="mosaicChip">🖌 モザイク：OFF</button>
+        <button type="button" class="chip" id="blurChip">🌫 ぼかし</button>
+        <button type="button" class="chip" id="stampChip">💗 スタンプ</button>
+        <button type="button" class="chip" id="cropChip">✂️ トリミング</button>
+        <button type="button" class="chip" id="rotLChip">⟲ 左に回転</button>
+        <button type="button" class="chip" id="rotRChip">⟳ 右に回転</button>
+      </div>
+
+      <div class="panel" id="blurPanel">
+        <p class="hint">ぼかしたいところを、指でなぞってください。顔や背景、映り込みを隠せます。</p>
+      </div>
+
+      <div class="panel" id="stampPanel">
+        <p class="tool-label">絵文字スタンプ</p>
+        <div class="chips" id="emojiChips"></div>
+        <p class="tool-label">一言スタンプ</p>
+        <div class="chips" id="wordChips"></div>
+        <p class="tool-label">自分のスタンプ <small>（持っている画像を取り込めます）</small></p>
+        <div class="chips" id="customChips"></div>
+        <div class="chips">
+          <button type="button" class="chip" id="importStampBtn">＋ スタンプを取り込む</button>
+          <button type="button" class="chip" id="stampDeleteBtn" style="display:none">🗑 選んだスタンプを消す</button>
+        </div>
+        <input type="file" id="stampInput" accept="image/*" style="display:none">
+        <p class="hint">背景が透明な画像（透過PNG）がいちばんきれいに貼れます。取り込んだスタンプはこの端末の中に保存されるので、次回もそのまま使えます（外部には送られません）。</p>
+        <p class="tool-label">スタンプの大きさ</p>
+        <input type="range" id="stampSize" min="8" max="30" value="16">
+        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。</p>
+      </div>
+
+      <div class="panel" id="cropPanel">
+        <p class="tool-label">比率</p>
+        <div class="chips" id="aspectChips">
+          <button type="button" class="chip on" data-a="free">自由</button>
+          <button type="button" class="chip" data-a="1">正方形</button>
+          <button type="button" class="chip" data-a="0.75">縦長</button>
+          <button type="button" class="chip" data-a="1.333">横長</button>
+        </div>
+        <p class="hint">枠をドラッグで動かして、四すみの丸をドラッグで大きさを変えます。</p>
+        <div class="btn-row">
+          <button type="button" class="sub" id="cropCancelBtn">やめる</button>
+          <button type="button" class="sub primary" id="cropApplyBtn">✂️ 切り取る</button>
+        </div>
       </div>
 
       <p class="tool-label">明るさ</p>
@@ -89,7 +152,7 @@
       </div>
 
       <button type="button" class="save" id="saveBtn" disabled>保存する（位置情報は消えます）</button>
-      <p class="tool-label" style="font-weight:normal; color:#8a5a6c; margin-top:8px">スマホでは保存を押すと共有メニューが開きます。「画像を保存」を選ぶと写真アプリに入ります。PCではダウンロードフォルダに保存されます。</p>
+      <p class="hint" style="margin-top:8px">スマホでは保存を押すと共有メニューが開きます。「画像を保存」を選ぶと写真アプリに入ります。PCではダウンロードフォルダに保存されます。</p>
     </div>
 
     <p class="safe-note">
@@ -106,21 +169,28 @@
   var mainView = document.getElementById("mainView");
   var editView = document.getElementById("editView");
   var stage = document.getElementById("stage");
+  var cvwrap = document.getElementById("cvwrap");
   var cv = document.getElementById("cv");
   var ctx = cv.getContext("2d");
   var fileInput = document.getElementById("fileInput");
   var brightRange = document.getElementById("brightRange");
-  var mosaicChip = document.getElementById("mosaicChip");
+  var stampSize = document.getElementById("stampSize");
   var undoBtn = document.getElementById("undoBtn");
   var saveBtn = document.getElementById("saveBtn");
+  var cropFrame = document.getElementById("cropFrame");
 
-  var base = document.createElement("canvas");   // 編集済みピクセル（モザイクはこちらに焼き込む）
+  var base = document.createElement("canvas");   // 編集済みピクセル（ぼかし・スタンプ等を焼き込む）
   var orig = document.createElement("canvas");   // 読み込み直後のコピー（リセット用）
   var undoStack = [];
   var hasPhoto = false;
-  var mosaicOn = false;
+  var mode = "none"; // none | blur | stamp | crop
   var drawing = false;
-  var strokeStarted = false;
+  var pendingStamp = null; // {type:'emoji'|'word', value}
+  var aspect = "free";
+  var crop = { x: 0, y: 0, w: 0, h: 0 }; // 表示px（cvwrap基準）
+
+  var EMOJIS = ["💗", "✨", "🌸", "⭐", "🎀", "🥰", "💕", "🍀", "🌷", "💖"];
+  var WORDS = ["出勤中♪", "待ってます♡", "ありがとうございました", "お疲れさまです", "よろしくお願いします♪", "また来てね♡"];
 
   document.getElementById("openPhotoBtn").addEventListener("click", function () {
     mainView.style.display = "none";
@@ -155,6 +225,7 @@
       stage.classList.add("show");
       saveBtn.disabled = false;
       undoBtn.disabled = true;
+      setMode("none");
       render();
     };
     img.src = url;
@@ -169,13 +240,6 @@
   }
   brightRange.addEventListener("input", render);
 
-  mosaicChip.addEventListener("click", function () {
-    mosaicOn = !mosaicOn;
-    mosaicChip.textContent = mosaicOn ? "🖌 モザイク：ON（なぞってね）" : "🖌 モザイク：OFF";
-    mosaicChip.classList.toggle("on", mosaicOn);
-    cv.classList.toggle("mosaic", mosaicOn);
-  });
-
   function pushUndo() {
     var snap = document.createElement("canvas");
     snap.width = base.width; snap.height = base.height;
@@ -187,19 +251,57 @@
   undoBtn.addEventListener("click", function () {
     var snap = undoStack.pop();
     if (!snap) return;
+    base.width = snap.width; base.height = snap.height;
     base.getContext("2d").drawImage(snap, 0, 0);
     undoBtn.disabled = undoStack.length === 0;
     render();
   });
   document.getElementById("resetBtn").addEventListener("click", function () {
     if (!hasPhoto) return;
+    base.width = orig.width; base.height = orig.height;
     base.getContext("2d").drawImage(orig, 0, 0);
     brightRange.value = 100;
     undoStack = [];
     undoBtn.disabled = true;
+    setMode("none");
     render();
   });
 
+  // ===== モード切替 =====
+  var modeChips = { blur: document.getElementById("blurChip"), stamp: document.getElementById("stampChip"), crop: document.getElementById("cropChip") };
+  var panels = { blur: document.getElementById("blurPanel"), stamp: document.getElementById("stampPanel"), crop: document.getElementById("cropPanel") };
+  function setMode(m) {
+    mode = (mode === m) ? "none" : m;
+    Object.keys(modeChips).forEach(function (k) { modeChips[k].classList.toggle("on", mode === k); });
+    Object.keys(panels).forEach(function (k) { panels[k].classList.toggle("show", mode === k); });
+    cv.classList.toggle("drawing", mode === "blur" || mode === "stamp");
+    if (mode === "crop") { initCrop(); cropFrame.classList.add("show"); }
+    else cropFrame.classList.remove("show");
+  }
+  modeChips.blur.addEventListener("click", function () { setMode("blur"); });
+  modeChips.stamp.addEventListener("click", function () { setMode("stamp"); });
+  modeChips.crop.addEventListener("click", function () { setMode("crop"); });
+
+  // ===== 回転 =====
+  function rotate(dir) {
+    if (!hasPhoto) return;
+    pushUndo();
+    var src = document.createElement("canvas");
+    src.width = base.width; src.height = base.height;
+    src.getContext("2d").drawImage(base, 0, 0);
+    base.width = src.height; base.height = src.width;
+    var bctx = base.getContext("2d");
+    bctx.save();
+    if (dir > 0) { bctx.translate(base.width, 0); bctx.rotate(Math.PI / 2); }
+    else { bctx.translate(0, base.height); bctx.rotate(-Math.PI / 2); }
+    bctx.drawImage(src, 0, 0);
+    bctx.restore();
+    render();
+  }
+  document.getElementById("rotLChip").addEventListener("click", function () { rotate(-1); });
+  document.getElementById("rotRChip").addEventListener("click", function () { rotate(1); });
+
+  // ===== キャンバス上の操作（ぼかし／スタンプ） =====
   function canvasPos(e) {
     var r = cv.getBoundingClientRect();
     return {
@@ -207,43 +309,303 @@
       y: (e.clientY - r.top) * (cv.height / r.height)
     };
   }
-  function pixelate(x, y) {
+  function blurAt(x, y) {
     var bctx = base.getContext("2d");
-    var R = Math.max(20, Math.round(base.width * 0.05));
-    var x0 = Math.max(0, Math.round(x - R)), y0 = Math.max(0, Math.round(y - R));
-    var w = Math.min(base.width - x0, R * 2), h = Math.min(base.height - y0, R * 2);
+    var R = Math.max(22, Math.round(base.width * 0.055));
+    var pad = R; // ぼかしの広がり分を確保
+    var x0 = Math.max(0, Math.round(x - R - pad)), y0 = Math.max(0, Math.round(y - R - pad));
+    var w = Math.min(base.width - x0, (R + pad) * 2), h = Math.min(base.height - y0, (R + pad) * 2);
     if (w <= 0 || h <= 0) return;
-    var BLOCK = 14;
-    var tw = Math.max(1, Math.round(w / BLOCK)), th = Math.max(1, Math.round(h / BLOCK));
-    var tmp = document.createElement("canvas");
-    tmp.width = tw; tmp.height = th;
-    var tctx = tmp.getContext("2d");
-    tctx.drawImage(base, x0, y0, w, h, 0, 0, tw, th);
+    // 段階的に縮小→拡大すると、ctx.filter がなくても柔らかいぼかしになる
+    var steps = [0.5, 0.25, 0.12];
+    var cur = document.createElement("canvas");
+    cur.width = w; cur.height = h;
+    cur.getContext("2d").drawImage(base, x0, y0, w, h, 0, 0, w, h);
+    steps.forEach(function (sc) {
+      var nxt = document.createElement("canvas");
+      nxt.width = Math.max(1, Math.round(w * sc)); nxt.height = Math.max(1, Math.round(h * sc));
+      var nctx = nxt.getContext("2d");
+      nctx.imageSmoothingEnabled = true;
+      nctx.drawImage(cur, 0, 0, nxt.width, nxt.height);
+      cur = nxt;
+    });
+    var big = document.createElement("canvas");
+    big.width = w; big.height = h;
+    var bigCtx = big.getContext("2d");
+    bigCtx.imageSmoothingEnabled = true;
+    bigCtx.drawImage(cur, 0, 0, w, h);
     bctx.save();
-    bctx.imageSmoothingEnabled = false;
     bctx.beginPath();
     bctx.arc(x, y, R, 0, Math.PI * 2);
     bctx.clip();
-    bctx.drawImage(tmp, 0, 0, tw, th, x0, y0, w, h);
+    bctx.drawImage(big, x0, y0);
+    bctx.restore();
+    render();
+  }
+  function stampAt(x, y) {
+    if (!pendingStamp) return;
+    var bctx = base.getContext("2d");
+    var sizePx = base.width * (stampSize.value / 100);
+    bctx.save();
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    if (pendingStamp.type === "emoji") {
+      bctx.font = sizePx + "px sans-serif";
+      bctx.fillText(pendingStamp.value, x, y);
+    } else if (pendingStamp.type === "image") {
+      var im = preloadCustom(pendingStamp.value);
+      if (im && im.complete && im.naturalWidth > 0) {
+        var iw = sizePx * 1.6;
+        var ih = iw * (im.naturalHeight / im.naturalWidth);
+        bctx.drawImage(im, x - iw / 2, y - ih / 2, iw, ih);
+      }
+    } else {
+      var fs = Math.max(14, sizePx * 0.42);
+      bctx.font = "bold " + fs + "px 'Hiragino Maru Gothic ProN', sans-serif";
+      bctx.lineWidth = fs / 5;
+      bctx.strokeStyle = "#ffffff";
+      bctx.lineJoin = "round";
+      bctx.strokeText(pendingStamp.value, x, y);
+      bctx.fillStyle = "#e75480";
+      bctx.fillText(pendingStamp.value, x, y);
+    }
     bctx.restore();
     render();
   }
   cv.addEventListener("pointerdown", function (e) {
-    if (!mosaicOn || !hasPhoto) return;
-    e.preventDefault();
-    drawing = true; strokeStarted = false;
-    cv.setPointerCapture(e.pointerId);
-    if (!strokeStarted) { pushUndo(); strokeStarted = true; }
-    var p = canvasPos(e); pixelate(p.x, p.y);
+    if (!hasPhoto) return;
+    if (mode === "blur") {
+      e.preventDefault();
+      drawing = true;
+      cv.setPointerCapture(e.pointerId);
+      pushUndo();
+      var p = canvasPos(e); blurAt(p.x, p.y);
+    } else if (mode === "stamp") {
+      e.preventDefault();
+      if (!pendingStamp) return;
+      pushUndo();
+      var q = canvasPos(e); stampAt(q.x, q.y);
+    }
   });
   cv.addEventListener("pointermove", function (e) {
-    if (!drawing || !mosaicOn) return;
-    var p = canvasPos(e); pixelate(p.x, p.y);
+    if (!drawing || mode !== "blur") return;
+    var p = canvasPos(e); blurAt(p.x, p.y);
   });
   ["pointerup", "pointercancel"].forEach(function (ev) {
     cv.addEventListener(ev, function () { drawing = false; });
   });
 
+  // ===== スタンプ選択 =====
+  function buildStampChips() {
+    var ec = document.getElementById("emojiChips");
+    EMOJIS.forEach(function (em) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip emoji"; b.textContent = em;
+      b.addEventListener("click", function () {
+        pendingStamp = { type: "emoji", value: em };
+        markStampChips(b);
+      });
+      ec.appendChild(b);
+    });
+    var wc = document.getElementById("wordChips");
+    WORDS.forEach(function (wd) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = wd;
+      b.addEventListener("click", function () {
+        pendingStamp = { type: "word", value: wd };
+        markStampChips(b);
+      });
+      wc.appendChild(b);
+    });
+  }
+  function markStampChips(selected) {
+    document.querySelectorAll("#emojiChips .chip, #wordChips .chip, #customChips .chip").forEach(function (c) {
+      c.classList.toggle("on", c === selected);
+    });
+    var del = document.getElementById("stampDeleteBtn");
+    del.style.display = (selected && selected.dataset && selected.dataset.custom !== undefined) ? "" : "none";
+    del.dataset.idx = (selected && selected.dataset) ? (selected.dataset.custom || "") : "";
+  }
+  buildStampChips();
+
+  // ===== 自分のスタンプ（取り込み・端末内に保存） =====
+  var STAMP_KEY = "shame-custom-stamps";
+  var STAMP_MAX = 12;
+  var customStamps = [];
+  var customImgs = {}; // dataURL -> Image
+  try {
+    var savedStamps = JSON.parse(localStorage.getItem(STAMP_KEY) || "[]");
+    if (Array.isArray(savedStamps)) customStamps = savedStamps.filter(function (x) { return typeof x === "string"; }).slice(0, STAMP_MAX);
+  } catch (e) { customStamps = []; }
+  function saveCustomStamps() {
+    try { localStorage.setItem(STAMP_KEY, JSON.stringify(customStamps)); } catch (e) { /* 容量いっぱいのときは保存しない */ }
+  }
+  function preloadCustom(dataURL) {
+    if (customImgs[dataURL]) return customImgs[dataURL];
+    var im = new Image();
+    im.src = dataURL;
+    customImgs[dataURL] = im;
+    return im;
+  }
+  function buildCustomChips() {
+    var cc = document.getElementById("customChips");
+    cc.innerHTML = "";
+    customStamps.forEach(function (dataURL, idx) {
+      preloadCustom(dataURL);
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.dataset.custom = idx;
+      var im = document.createElement("img");
+      im.src = dataURL; im.alt = "自分のスタンプ";
+      im.style.height = "26px"; im.style.maxWidth = "64px"; im.style.objectFit = "contain"; im.style.display = "block";
+      b.appendChild(im);
+      b.addEventListener("click", function () {
+        pendingStamp = { type: "image", value: dataURL };
+        markStampChips(b);
+      });
+      cc.appendChild(b);
+    });
+    if (customStamps.length === 0) {
+      var none = document.createElement("span");
+      none.className = "hint";
+      none.textContent = "まだ取り込んだスタンプはありません。";
+      cc.appendChild(none);
+    }
+  }
+  buildCustomChips();
+  document.getElementById("importStampBtn").addEventListener("click", function () {
+    document.getElementById("stampInput").click();
+  });
+  document.getElementById("stampInput").addEventListener("change", function () {
+    var input = this;
+    var f = input.files && input.files[0];
+    input.value = "";
+    if (!f) return;
+    if (customStamps.length >= STAMP_MAX) {
+      alert("スタンプは" + STAMP_MAX + "個までです。いらないスタンプを消してから取り込んでください。");
+      return;
+    }
+    var url = URL.createObjectURL(f);
+    var img = new Image();
+    img.onload = function () {
+      var MAXS = 512;
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var sc = Math.min(1, MAXS / Math.max(w, h));
+      var c = document.createElement("canvas");
+      c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var dataURL = c.toDataURL("image/png");
+      customStamps.push(dataURL);
+      saveCustomStamps();
+      preloadCustom(dataURL);
+      buildCustomChips();
+      // 取り込んだら、そのまま選んだ状態にする
+      pendingStamp = { type: "image", value: dataURL };
+      var chips = document.querySelectorAll("#customChips .chip");
+      if (chips.length) markStampChips(chips[chips.length - 1]);
+    };
+    img.src = url;
+  });
+  document.getElementById("stampDeleteBtn").addEventListener("click", function () {
+    var idx = parseInt(this.dataset.idx, 10);
+    if (isNaN(idx) || idx < 0 || idx >= customStamps.length) return;
+    var removed = customStamps.splice(idx, 1)[0];
+    if (pendingStamp && pendingStamp.type === "image" && pendingStamp.value === removed) pendingStamp = null;
+    saveCustomStamps();
+    buildCustomChips();
+    this.style.display = "none";
+  });
+
+  // ===== トリミング =====
+  function initCrop() {
+    var r = cv.getBoundingClientRect();
+    var w = r.width * 0.8, h = r.height * 0.8;
+    if (aspect !== "free") {
+      var ratio = parseFloat(aspect);
+      if (w / h > ratio) w = h * ratio; else h = w / ratio;
+    }
+    crop = { x: (r.width - w) / 2, y: (r.height - h) / 2, w: w, h: h };
+    drawCrop();
+  }
+  function drawCrop() {
+    cropFrame.style.left = crop.x + "px";
+    cropFrame.style.top = crop.y + "px";
+    cropFrame.style.width = crop.w + "px";
+    cropFrame.style.height = crop.h + "px";
+  }
+  document.getElementById("aspectChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-a]");
+    if (!b) return;
+    aspect = b.getAttribute("data-a");
+    document.querySelectorAll("#aspectChips .chip").forEach(function (c) { c.classList.toggle("on", c === b); });
+    if (mode === "crop") initCrop();
+  });
+  var dragState = null;
+  function framePos(e) {
+    var r = cvwrap.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  cropFrame.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    var handle = e.target.getAttribute("data-h");
+    var p = framePos(e);
+    dragState = { handle: handle, startX: p.x, startY: p.y, start: { x: crop.x, y: crop.y, w: crop.w, h: crop.h } };
+    cropFrame.setPointerCapture(e.pointerId);
+  });
+  cropFrame.addEventListener("pointermove", function (e) {
+    if (!dragState) return;
+    var wrap = cvwrap.getBoundingClientRect();
+    var p = framePos(e);
+    var dx = p.x - dragState.startX, dy = p.y - dragState.startY;
+    var s = dragState.start;
+    var MIN = 40;
+    if (!dragState.handle) {
+      crop.x = Math.min(Math.max(0, s.x + dx), wrap.width - s.w);
+      crop.y = Math.min(Math.max(0, s.y + dy), wrap.height - s.h);
+    } else {
+      var x0 = s.x, y0 = s.y, x1 = s.x + s.w, y1 = s.y + s.h;
+      if (dragState.handle.indexOf("e") >= 0) x1 += dx;
+      if (dragState.handle.indexOf("s") >= 0) y1 += dy;
+      if (dragState.handle.indexOf("w") >= 0) x0 += dx;
+      if (dragState.handle.indexOf("n") >= 0) y0 += dy;
+      x0 = Math.max(0, x0); y0 = Math.max(0, y0);
+      x1 = Math.min(wrap.width, x1); y1 = Math.min(wrap.height, y1);
+      if (aspect !== "free") {
+        var ratio = parseFloat(aspect);
+        var nw = x1 - x0;
+        var nh = nw / ratio;
+        if (dragState.handle.indexOf("n") >= 0) y0 = y1 - nh; else y1 = y0 + nh;
+        if (y0 < 0) { y0 = 0; y1 = nw / ratio; }
+        if (y1 > wrap.height) { y1 = wrap.height; }
+      }
+      if (x1 - x0 >= MIN && y1 - y0 >= MIN) {
+        crop = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+    }
+    drawCrop();
+  });
+  ["pointerup", "pointercancel"].forEach(function (ev) {
+    cropFrame.addEventListener(ev, function () { dragState = null; });
+  });
+  document.getElementById("cropCancelBtn").addEventListener("click", function () { setMode("crop"); });
+  document.getElementById("cropApplyBtn").addEventListener("click", function () {
+    if (!hasPhoto) return;
+    var r = cv.getBoundingClientRect();
+    var scale = base.width / r.width;
+    var sx = Math.round(crop.x * scale), sy = Math.round(crop.y * scale);
+    var sw = Math.round(crop.w * scale), sh = Math.round(crop.h * scale);
+    if (sw < 10 || sh < 10) return;
+    pushUndo();
+    var src = document.createElement("canvas");
+    src.width = base.width; src.height = base.height;
+    src.getContext("2d").drawImage(base, 0, 0);
+    base.width = sw; base.height = sh;
+    base.getContext("2d").drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+    setMode("crop");
+    render();
+  });
+
+  // ===== 保存（スマホ：共有シート／PC：ダウンロード） =====
   function flashSaveBtn(text) {
     saveBtn.textContent = text;
     saveBtn.classList.add("done");
@@ -251,6 +613,16 @@
       saveBtn.textContent = "保存する（位置情報は消えます）";
       saveBtn.classList.remove("done");
     }, 2500);
+  }
+  function downloadFallback(blob, fname) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    flashSaveBtn("✓ 保存しました（ダウンロード）");
   }
   saveBtn.addEventListener("click", function () {
     if (!hasPhoto) return;
@@ -268,7 +640,6 @@
       var file = null;
       try { file = new File([blob], fname, { type: "image/jpeg" }); } catch (e) { file = null; }
       // スマホでは共有シート方式（写真アプリへ直接保存できる）。PCではダウンロードを優先
-      // （PCの共有メニューには「フォルダに保存」がなく、閉じると何も保存されないため）
       var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
       if (isMobile && file && navigator.canShare && navigator.share) {
         var payload = { files: [file] };
@@ -276,7 +647,6 @@
           navigator.share(payload).then(function () {
             flashSaveBtn("✓ 完了しました");
           }).catch(function (err) {
-            // 共有をキャンセルした場合は何もしない。それ以外の失敗はダウンロードに切り替え
             if (err && err.name !== "AbortError") downloadFallback(blob, fname);
           });
           return;
@@ -285,16 +655,6 @@
       downloadFallback(blob, fname);
     }, "image/jpeg", 0.92);
   });
-  function downloadFallback(blob, fname) {
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-    flashSaveBtn("✓ 保存しました（ダウンロード）");
-  }
 })();
 </script>
 </body>
