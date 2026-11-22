@@ -50,6 +50,9 @@
   .crop-handle.se { right: -14px; bottom: -14px; cursor: nwse-resize; }
   .tool-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 14px 0 6px; }
   .tool-label small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
+  .okx-row { display: flex; gap: 28px; justify-content: center; margin-top: 12px; }
+  .okx { width: 64px; height: 64px; border-radius: 50%; font-size: 28px; font-weight: bold; border: 2px solid #f3c6d3; background: #fff5f7; color: #8a6a76; cursor: pointer; font-family: inherit; line-height: 1; }
+  .okx.ok { background: #d6336c; color: #fff; border-color: #d6336c; }
   .tool-btns { display: flex; gap: 8px; margin: 6px 0 4px; }
   .tool-btn { flex: 1; min-height: 60px; font-size: 16px; font-weight: bold; border-radius: 14px; border: 2px solid #f3c6d3; background: #ffe3ec; color: #c2255c; cursor: pointer; font-family: inherit; }
   .tool-btn.on { background: #d6336c; color: #fff; border-color: #d6336c; }
@@ -126,7 +129,7 @@
       <div class="panel" id="stampPanel">
         <p class="tool-label">絵文字スタンプ</p>
         <div class="chips" id="emojiChips"></div>
-        <p class="hint" style="color:#c2255c; font-weight:bold">※スタンプは「この場所でOK」を押すまで、写真に反映されません。</p>
+        <p class="hint" style="color:#c2255c; font-weight:bold">※スタンプは ○ ボタンを押すまで、写真に反映されません。</p>
         <p class="tool-label">一言スタンプ</p>
         <div class="chips" id="wordChips"></div>
         <p class="tool-label">自分のスタンプ <small>（持っている画像を取り込めます）</small></p>
@@ -139,16 +142,10 @@
         <p class="hint">背景が透明な画像（透過PNG）がいちばんきれいに貼れます。取り込んだスタンプはこの端末の中に保存されるので、次回もそのまま使えます（外部には送られません）。</p>
         <p class="tool-label">スタンプの大きさ</p>
         <input type="range" id="stampSize" min="8" max="30" value="16">
-        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとも、大きさ（上のスライダー）と場所（ドラッグ）を直せます。決まったら「この場所でOK」を押してください。</p>
-        <div class="btn-row" id="stampActions" style="display:none">
-          <button type="button" class="sub" id="stampCancelBtn">やめる</button>
-          <button type="button" class="sub primary" id="stampOkBtn">✓ この場所でOK</button>
-        </div>
-        <div class="btn-row" id="nudgeRow" style="display:none">
-          <button type="button" class="sub" data-nudge="0,-1">↑ 上へ</button>
-          <button type="button" class="sub" data-nudge="0,1">↓ 下へ</button>
-          <button type="button" class="sub" data-nudge="-1,0">← 左へ</button>
-          <button type="button" class="sub" data-nudge="1,0">→ 右へ</button>
+        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとも、大きさ（上のスライダー）と場所（ドラッグ）を直せます。決まったら ○ ボタン、やめるときは ✕ ボタンを押してください。</p>
+        <div class="okx-row" id="stampActions" style="display:none">
+          <button type="button" class="okx" id="stampCancelBtn">✕</button>
+          <button type="button" class="okx ok" id="stampOkBtn">○</button>
         </div>
         <button type="button" class="sub" id="stampRepositionBtn" style="display:none; width:100%; margin-top:10px">さっきのスタンプの場所・大きさを直す</button>
       </div>
@@ -385,7 +382,6 @@
   var placed = null; // {x, y} 表示px（cvwrap基準）
   var pendingEl = document.getElementById("pendingStamp");
   var stampActions = document.getElementById("stampActions");
-  var nudgeRow = document.getElementById("nudgeRow");
   var repositionBtn = document.getElementById("stampRepositionBtn");
   var lastBaked = null; // {stamp, x, y, sizeVal, baseBefore}
   function invalidateReposition() {
@@ -400,7 +396,6 @@
     if (!placed || !pendingStamp) {
       pendingEl.classList.remove("show");
       stampActions.style.display = "none";
-      nudgeRow.style.display = "none";
       return;
     }
     var ds = base.width * (stampSize.value / 100) * dispScale();
@@ -428,7 +423,6 @@
     pendingEl.style.top = placed.y + "px";
     pendingEl.classList.add("show");
     stampActions.style.display = "";
-    nudgeRow.style.display = "";
   }
   function placeStamp(dx, dy) {
     placed = { x: dx, y: dy };
@@ -438,7 +432,6 @@
     placed = null;
     pendingEl.classList.remove("show");
     stampActions.style.display = "none";
-    nudgeRow.style.display = "none";
   }
   var placedDrag = false;
   pendingEl.addEventListener("pointerdown", function (e) {
@@ -457,15 +450,6 @@
     pendingEl.addEventListener(ev, function () { placedDrag = false; });
   });
   stampSize.addEventListener("input", function () { if (placed) refreshPendingEl(); });
-  nudgeRow.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-nudge]");
-    if (!b || !placed) return;
-    var d = b.getAttribute("data-nudge").split(",");
-    placed.x += parseInt(d[0], 10) * 5;
-    placed.y += parseInt(d[1], 10) * 5;
-    pendingEl.style.left = placed.x + "px";
-    pendingEl.style.top = placed.y + "px";
-  });
   document.getElementById("stampOkBtn").addEventListener("click", function () {
     if (!placed || !pendingStamp) return;
     var sc = 1 / dispScale();
