@@ -140,9 +140,7 @@
         </div>
         <input type="file" id="stampInput" accept="image/*" style="display:none">
         <p class="hint">背景が透明な画像（透過PNG）がいちばんきれいに貼れます。取り込んだスタンプはこの端末の中に保存されるので、次回もそのまま使えます（外部には送られません）。</p>
-        <p class="tool-label">スタンプの大きさ</p>
-        <input type="range" id="stampSize" min="8" max="30" value="16">
-        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとは、場所はドラッグ、大きさはスライダーか、スタンプを2本指で広げる・つまむ（ピンチ）で直せます。決まったら ○ ボタン、やめるときは ✕ ボタンを押してください。</p>
+        <p class="hint">スタンプを選んでから、写真の貼りたい場所をタップしてください。貼ったあとは、場所はドラッグ、大きさはスタンプを2本指で広げる・つまむ（ピンチ）で直せます。決まったら ○ ボタン、やめるときは ✕ ボタンを押してください。</p>
         <div class="okx-row" id="stampActions" style="display:none">
           <button type="button" class="okx" id="stampCancelBtn">✕</button>
           <button type="button" class="okx ok" id="stampOkBtn">○</button>
@@ -196,7 +194,7 @@
   var ctx = cv.getContext("2d");
   var fileInput = document.getElementById("fileInput");
   var brightRange = document.getElementById("brightRange");
-  var stampSize = document.getElementById("stampSize");
+  var stampSize = { value: 16 }; // スタンプの大きさ（写真幅に対する％、ピンチで変更）
   var undoBtn = document.getElementById("undoBtn");
   var saveBtn = document.getElementById("saveBtn");
   var cropFrame = document.getElementById("cropFrame");
@@ -474,7 +472,6 @@
       if (pPointers.size < 2) pinchStart = null;
     });
   });
-  stampSize.addEventListener("input", function () { if (placed) refreshPendingEl(); });
   document.getElementById("stampOkBtn").addEventListener("click", function () {
     if (!placed || !pendingStamp) return;
     var sc = 1 / dispScale();
