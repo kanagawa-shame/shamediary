@@ -31,7 +31,8 @@
   button.pick:active { background: #d6336c; }
   .stage { display: none; margin-top: 14px; background: #fff; border-radius: 16px; padding: 12px; box-shadow: 0 2px 8px rgba(214,51,108,.08); }
   .stage.show { display: block; }
-  .cvwrap { position: relative; line-height: 0; }
+  .sticky-photo { position: sticky; top: 8px; z-index: 6; background: #fff; padding: 4px 0 10px; border-radius: 12px; box-shadow: 0 8px 14px -8px rgba(214,51,108,.25); }
+  .cvwrap { position: relative; line-height: 0; max-width: 300px; margin: 0 auto; }
   canvas#cv { width: 100%; height: auto; display: block; border-radius: 10px; background: #f7e8ec; touch-action: none; }
   canvas#cv.drawing { outline: 2px dashed #e75480; outline-offset: -2px; }
   /* 貼り付け中スタンプ（確定前は大きさ・場所を変えられる） */
@@ -92,14 +93,16 @@
     <input type="file" id="fileInput" accept="image/*" style="display:none">
 
     <div class="stage" id="stage">
-      <div class="cvwrap" id="cvwrap">
-        <canvas id="cv" width="360" height="240"></canvas>
-        <div id="pendingStamp"></div>
-        <div class="crop-frame" id="cropFrame">
-          <div class="crop-handle nw" data-h="nw"></div>
-          <div class="crop-handle ne" data-h="ne"></div>
-          <div class="crop-handle sw" data-h="sw"></div>
-          <div class="crop-handle se" data-h="se"></div>
+      <div class="sticky-photo">
+        <div class="cvwrap" id="cvwrap">
+          <canvas id="cv" width="360" height="240"></canvas>
+          <div id="pendingStamp"></div>
+          <div class="crop-frame" id="cropFrame">
+            <div class="crop-handle nw" data-h="nw"></div>
+            <div class="crop-handle ne" data-h="ne"></div>
+            <div class="crop-handle sw" data-h="sw"></div>
+            <div class="crop-handle se" data-h="se"></div>
+          </div>
         </div>
       </div>
 
@@ -110,6 +113,8 @@
         <button type="button" class="chip" id="cropChip">✂️ トリミング</button>
         <button type="button" class="chip" id="rotLChip">⟲ 左に回転</button>
         <button type="button" class="chip" id="rotRChip">⟳ 右に回転</button>
+        <button type="button" class="chip" id="flipHChip">⇋ 左右反転</button>
+        <button type="button" class="chip" id="flipVChip">⇵ 上下反転</button>
       </div>
 
       <div class="panel" id="blurPanel">
@@ -309,6 +314,7 @@
   function rotate(dir) {
     if (!hasPhoto) return;
     invalidateReposition();
+    clearPlaced();
     pushUndo();
     var src = document.createElement("canvas");
     src.width = base.width; src.height = base.height;
@@ -324,6 +330,26 @@
   }
   document.getElementById("rotLChip").addEventListener("click", function () { rotate(-1); });
   document.getElementById("rotRChip").addEventListener("click", function () { rotate(1); });
+
+  // ===== 反転 =====
+  function flip(horizontal) {
+    if (!hasPhoto) return;
+    invalidateReposition();
+    clearPlaced();
+    pushUndo();
+    var src = document.createElement("canvas");
+    src.width = base.width; src.height = base.height;
+    src.getContext("2d").drawImage(base, 0, 0);
+    var bctx = base.getContext("2d");
+    bctx.save();
+    if (horizontal) { bctx.translate(base.width, 0); bctx.scale(-1, 1); }
+    else { bctx.translate(0, base.height); bctx.scale(1, -1); }
+    bctx.drawImage(src, 0, 0);
+    bctx.restore();
+    render();
+  }
+  document.getElementById("flipHChip").addEventListener("click", function () { flip(true); });
+  document.getElementById("flipVChip").addEventListener("click", function () { flip(false); });
 
   // ===== キャンバス上の操作（ぼかし／スタンプ） =====
   function canvasPos(e) {
