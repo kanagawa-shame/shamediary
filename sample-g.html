@@ -50,8 +50,8 @@
   .crop-handle.se { right: -14px; bottom: -14px; cursor: nwse-resize; }
   .tool-label { font-size: 13px; font-weight: bold; color: #b03060; margin: 14px 0 6px; }
   .tool-label small { font-weight: normal; color: #8a5a6c; font-size: 12px; }
-  .okx-row { display: flex; gap: 28px; justify-content: center; margin-top: 12px; }
-  .okx { width: 64px; height: 64px; border-radius: 50%; font-size: 28px; font-weight: bold; border: 2px solid #f3c6d3; background: #fff5f7; color: #8a6a76; cursor: pointer; font-family: inherit; line-height: 1; }
+  .okx-row { display: flex; gap: 10px; align-items: center; }
+  .okx { width: 54px; height: 54px; border-radius: 50%; font-size: 24px; font-weight: bold; border: 2px solid #f3c6d3; background: #fff5f7; color: #8a6a76; cursor: pointer; font-family: inherit; line-height: 1; flex: none; }
   .okx.ok { background: #d6336c; color: #fff; border-color: #d6336c; }
   .tool-btns { display: flex; gap: 8px; margin: 6px 0 4px; }
   .tool-btn { flex: 1; min-height: 60px; font-size: 16px; font-weight: bold; border-radius: 14px; border: 2px solid #f3c6d3; background: #ffe3ec; color: #c2255c; cursor: pointer; font-family: inherit; }
@@ -533,6 +533,8 @@
     if (placed) refreshPendingEl();
   }
   buildStampChips();
+  // ○✕ボタンは絵文字スタンプの並びの最後（空きスペース）に置く
+  document.getElementById("emojiChips").appendChild(document.getElementById("stampActions"));
 
   // ===== 自分のスタンプ（取り込み・端末内に保存） =====
   var STAMP_KEY = "shame-custom-stamps";
