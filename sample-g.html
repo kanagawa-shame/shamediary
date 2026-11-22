@@ -136,6 +136,13 @@
           <button type="button" class="sub" id="stampCancelBtn">やめる</button>
           <button type="button" class="sub primary" id="stampOkBtn">✓ この場所でOK</button>
         </div>
+        <div class="btn-row" id="nudgeRow" style="display:none">
+          <button type="button" class="sub" data-nudge="0,-1">↑ 上へ</button>
+          <button type="button" class="sub" data-nudge="0,1">↓ 下へ</button>
+          <button type="button" class="sub" data-nudge="-1,0">← 左へ</button>
+          <button type="button" class="sub" data-nudge="1,0">→ 右へ</button>
+        </div>
+        <button type="button" class="sub" id="stampRepositionBtn" style="display:none; width:100%; margin-top:10px">↩ さっきのスタンプの場所・大きさを直す</button>
       </div>
 
       <div class="panel" id="cropPanel">
@@ -232,6 +239,7 @@
       undoStack = [];
       brightRange.value = 100;
       clearPlaced();
+      invalidateReposition();
       hasPhoto = true;
       stage.classList.add("show");
       saveBtn.disabled = false;
@@ -262,6 +270,7 @@
   undoBtn.addEventListener("click", function () {
     var snap = undoStack.pop();
     if (!snap) return;
+    invalidateReposition();
     base.width = snap.width; base.height = snap.height;
     base.getContext("2d").drawImage(snap, 0, 0);
     undoBtn.disabled = undoStack.length === 0;
@@ -275,6 +284,7 @@
     undoStack = [];
     undoBtn.disabled = true;
     clearPlaced();
+    invalidateReposition();
     setMode("none");
     render();
   });
@@ -298,6 +308,7 @@
   // ===== 回転 =====
   function rotate(dir) {
     if (!hasPhoto) return;
+    invalidateReposition();
     pushUndo();
     var src = document.createElement("canvas");
     src.width = base.width; src.height = base.height;
@@ -386,6 +397,13 @@
   var placed = null; // {x, y} 表示px（cvwrap基準）
   var pendingEl = document.getElementById("pendingStamp");
   var stampActions = document.getElementById("stampActions");
+  var nudgeRow = document.getElementById("nudgeRow");
+  var repositionBtn = document.getElementById("stampRepositionBtn");
+  var lastBaked = null; // {stamp, x, y, sizeVal, baseBefore}
+  function invalidateReposition() {
+    lastBaked = null;
+    repositionBtn.style.display = "none";
+  }
   function dispScale() {
     var r = cv.getBoundingClientRect();
     return r.width / base.width;
@@ -394,6 +412,7 @@
     if (!placed || !pendingStamp) {
       pendingEl.classList.remove("show");
       stampActions.style.display = "none";
+      nudgeRow.style.display = "none";
       return;
     }
     var ds = base.width * (stampSize.value / 100) * dispScale();
@@ -421,6 +440,7 @@
     pendingEl.style.top = placed.y + "px";
     pendingEl.classList.add("show");
     stampActions.style.display = "";
+    nudgeRow.style.display = "";
   }
   function placeStamp(dx, dy) {
     placed = { x: dx, y: dy };
@@ -430,6 +450,7 @@
     placed = null;
     pendingEl.classList.remove("show");
     stampActions.style.display = "none";
+    nudgeRow.style.display = "none";
   }
   var placedDrag = false;
   pendingEl.addEventListener("pointerdown", function (e) {
@@ -448,21 +469,48 @@
     pendingEl.addEventListener(ev, function () { placedDrag = false; });
   });
   stampSize.addEventListener("input", function () { if (placed) refreshPendingEl(); });
+  nudgeRow.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-nudge]");
+    if (!b || !placed) return;
+    var d = b.getAttribute("data-nudge").split(",");
+    placed.x += parseInt(d[0], 10) * 5;
+    placed.y += parseInt(d[1], 10) * 5;
+    pendingEl.style.left = placed.x + "px";
+    pendingEl.style.top = placed.y + "px";
+  });
   document.getElementById("stampOkBtn").addEventListener("click", function () {
     if (!placed || !pendingStamp) return;
     var sc = 1 / dispScale();
+    var baseBefore = document.createElement("canvas");
+    baseBefore.width = base.width; baseBefore.height = base.height;
+    baseBefore.getContext("2d").drawImage(base, 0, 0);
     pushUndo();
     drawStamp(base.getContext("2d"), pendingStamp, placed.x * sc, placed.y * sc, base.width * (stampSize.value / 100));
+    lastBaked = { stamp: pendingStamp, x: placed.x, y: placed.y, sizeVal: stampSize.value, baseBefore: baseBefore };
+    repositionBtn.style.display = "";
     clearPlaced();
     render();
   });
   document.getElementById("stampCancelBtn").addEventListener("click", function () { clearPlaced(); });
+  repositionBtn.addEventListener("click", function () {
+    if (!lastBaked) return;
+    base.width = lastBaked.baseBefore.width;
+    base.height = lastBaked.baseBefore.height;
+    base.getContext("2d").drawImage(lastBaked.baseBefore, 0, 0);
+    pendingStamp = lastBaked.stamp;
+    stampSize.value = lastBaked.sizeVal;
+    placed = { x: lastBaked.x, y: lastBaked.y };
+    invalidateReposition();
+    refreshPendingEl();
+    render();
+  });
   cv.addEventListener("pointerdown", function (e) {
     if (!hasPhoto) return;
     if (mode === "blur") {
       e.preventDefault();
       drawing = true;
       cv.setPointerCapture(e.pointerId);
+      invalidateReposition();
       pushUndo();
       var p = canvasPos(e); blurAt(p.x, p.y);
     } else if (mode === "stamp") {
@@ -681,6 +729,7 @@
     var sx = Math.round(crop.x * scale), sy = Math.round(crop.y * scale);
     var sw = Math.round(crop.w * scale), sh = Math.round(crop.h * scale);
     if (sw < 10 || sh < 10) return;
+    invalidateReposition();
     pushUndo();
     var src = document.createElement("canvas");
     src.width = base.width; src.height = base.height;
