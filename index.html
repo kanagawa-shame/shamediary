@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>写メ日記メーカー</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-E60WCZKGGC"></script>
+<script data-ga4="1">
+  if (typeof window !== "undefined") {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', 'G-E60WCZKGGC');
+  }
+</script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif; background: #f7e8ec; color: #4a3540; margin: 0; }
@@ -160,7 +170,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver5.19</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver5.23</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -374,7 +384,7 @@
       📁 PCではダウンロードフォルダに保存されます。スマホで共有が使えないときもダウンロードになります。
     </p>
 
-<script src="patterns.js?v=5.19"></script>
+<script src="patterns.js?v=5.23"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -943,7 +953,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "5.19";
+  var APP_VER = "5.23";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
