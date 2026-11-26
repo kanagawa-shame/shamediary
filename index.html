@@ -170,7 +170,7 @@
   </div>
 </div>
 <div class="phone">
-  <h1>📸 写メ日記メーカー<span class="ver">ver5.55</span></h1>
+  <h1>📸 写メ日記メーカー<span class="ver">ver5.67</span></h1>
   <p class="tapcount">設定は前回のまま。<b>ボタン1つ</b>で完成します</p>
 
   <div class="name-row">
@@ -384,7 +384,7 @@
       📁 PCではダウンロードフォルダに保存されます。スマホで共有が使えないときもダウンロードになります。
     </p>
 
-<script src="patterns.js?v=5.55"></script>
+<script src="patterns.js?v=5.67"></script>
 <script>
 (function () {
   // 端末に保存するのは名前・ジャンル・文体だけ（日付や時刻の入力は保存しない）
@@ -477,8 +477,8 @@
 
   // 文脈フィルタ：「復帰・久しぶり」系と「初めて・新人」系の文は、同じ日記に混ぜない
   // （例：タイトル「長いお休みをいただいていました」と本文「初めての出勤は緊張しました」が一緒になると不自然なため）
-  var CTX_BACK = /お久しぶり|長いお休み|久しぶりの出勤|久々の出勤|お休みをいただいてい|お休みが続いてい|お休み明け|休暇明け|復帰/;
-  var CTX_DEBUT = /初めての?出勤|初出勤|初日の出勤|入店したばかり|デビュー|出勤[0-9０-９]+日目/;
+  var CTX_BACK = /お久しぶり|長いお休み|久しぶりの出勤|久々の出勤|お休みをいただいてい|お休みが続いてい|お休み明け|休暇明け|復帰|久しぶりにお会い|久しぶりにお誘い|久しぶりの再会|ぶり[のに]再会|ぶりにお会い/;
+  var CTX_DEBUT = /初めての?出勤|初出勤|初日の出勤|入店したばかり|デビュー|出勤[0-9０-９]+日目|新人自己紹介/;
   var genBan = null;    // 今の生成で避ける側（CTX_BACK か CTX_DEBUT）
   var curBodyText = ""; // 直近に作った本文（タイトル側の文脈判定に使う）
   function ctxFilter(pool) {
@@ -953,7 +953,7 @@
   el("bodyText").addEventListener("input", updateCounts);
 
   // 更新案内：サーバー上の最新版を確認し、手元より新しければバーを出す
-  var APP_VER = "5.55";
+  var APP_VER = "5.67";
   var latestVer = null;
   var dismissedVer = null;
   function parseVer(v) {
